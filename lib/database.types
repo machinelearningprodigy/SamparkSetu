@@ -1,0 +1,14 @@
+export interface Item {
+  id?: string
+  created_at: string
+  name: string
+  category: string
+  description: string
+  location: string
+  date: string
+  type: "lost" | "found"
+  status: "pending" | "matched" | "claimed" | "closed"
+  user_id: string
+  images: string[]
+  condition?: string
+}

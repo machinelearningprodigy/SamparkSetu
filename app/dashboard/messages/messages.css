@@ -1,0 +1,65 @@
+/* Gmail-style custom styles */
+.conversation-item {
+    transition: background-color 0.15s ease;
+  }
+  
+  .conversation-item.unread {
+    background-color: rgba(30, 41, 59, 0.5);
+    border-left: 3px solid #3b82f6;
+  }
+  
+  .conversation-item:hover {
+    background-color: rgba(30, 41, 59, 0.5);
+  }
+  
+  .conversation-item.active {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3b82f6;
+  }
+  
+  .category-indicator {
+    display: inline-block;
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  
+  .category-indicator.lost {
+    background-color: #ef4444;
+  }
+  
+  .category-indicator.found {
+    background-color: #10b981;
+  }
+  
+  .category-badge {
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .category-badge.inbox {
+    background-color: #3b82f6;
+    color: white;
+  }
+  .category-badge.sent {
+    background-color: #10b981;
+    color: white;
+  }
+  .category-badge.archived {
+    background-color: #6b7280;
+    color: white;
+  }
+  .category-badge.spam {
+    background-color: #f59e0b;
+    color: white;
+  }
+  .category-badge.trash {
+    background-color: #ef4444;
+    color: white;
+  }
+  
