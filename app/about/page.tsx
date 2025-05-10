@@ -1,142 +1,539 @@
 "use client"
 
+import { useEffect, useState, useRef } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { motion } from "framer-motion"
+import { GlowingParticles } from "@/components/glowing-particles"
+import { AnimatedHeading } from "@/components/animated-heading"
+import { motion, useScroll, useTransform } from "framer-motion"
+import { ChevronDown, Award, Users, Target, Zap, Github, Linkedin, Mail, CheckCircle2 } from "lucide-react"
+import Image from "next/image"
 
 export default function AboutPage() {
-  const teamMembers = [
-    {
-      name: "Aanya Sharma",
-      role: "Founder & CEO",
-      bio: "With over 10 years of experience in community building and tech innovation, Aanya founded SamparkSetu with a vision to reunite people with their lost belongings using cutting-edge technology.",
-      avatar: "/placeholder.svg?height=100&width=100",
-    },
-    {
-      name: "Vikram Mehta",
-      role: "CTO",
-      bio: "Vikram leads our technical team, bringing expertise in AI and machine learning to create our advanced matching algorithms that help connect lost items with their owners.",
-      avatar: "/placeholder.svg?height=100&width=100",
-    },
-    {
-      name: "Priya Patel",
-      role: "Head of Operations",
-      bio: "Priya ensures that our platform runs smoothly, overseeing customer support and implementing processes that make finding and reporting items as seamless as possible.",
-      avatar: "/placeholder.svg?height=100&width=100",
-    },
-    {
-      name: "Arjun Singh",
-      role: "Community Manager",
-      bio: "Arjun works directly with our user community, gathering feedback and ensuring that SamparkSetu continues to meet the needs of the people we serve.",
-      avatar: "/placeholder.svg?height=100&width=100",
-    },
-  ]
+  const [isLoaded, setIsLoaded] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end end"],
+  })
+
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.3, 1, 1, 0.3])
+  const scale = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0.8, 1, 1, 0.8])
+
+  useEffect(() => {
+    setIsLoaded(true)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-slate-900 to-black">
+    <div className="min-h-screen bg-black text-white overflow-hidden">
       <Navbar />
+      <div className="relative" ref={containerRef}>
+        <GlowingParticles/>
 
-      <div className="container mx-auto px-4 py-32">
-        <div className="max-w-4xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <h1 className="text-4xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-              About SamparkSetu
-            </h1>
-
-            <Card className="bg-slate-900/70 backdrop-blur-lg border-slate-800 mb-12">
-              <CardContent className="pt-6">
-                <p className="text-lg mb-6">
-                  SamparkSetu, which means "Connection Bridge" in Hindi, was founded with a simple yet powerful mission:
-                  to reunite people with their lost belongings and create meaningful connections in the process.
+        {/* About Us Section */}
+        <section id="about" className="py-20 relative">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)]" />
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="text-center mb-16"
+              >
+                <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">
+                  About Us
+                </h1>
+                <div className="h-1 w-40 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 mx-auto mb-8"></div>
+                <p className="text-xl text-slate-300 max-w-3xl mx-auto">
+                  Learn about our mission, our team, and the story behind SamparkSetu's journey to reunite people with
+                  their lost belongings.
                 </p>
+              </motion.div>
 
-                <h2 className="text-2xl font-semibold mb-4 text-white">Our Mission</h2>
-                <p className="mb-6">
-                  At SamparkSetu, we believe that every lost item has a story and an owner who misses it. Our mission is
-                  to leverage technology to bridge the gap between lost items and their owners, making the process of
-                  recovering lost belongings efficient, secure, and accessible to everyone.
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16">
+                {/* Our Genesis */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-800 overflow-hidden hover:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-blue-500/20 h-full"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-blue-500/20 p-3 rounded-full">
+                        <CheckCircle2 className="h-6 w-6 text-blue-400" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-blue-300">Our Genesis</h3>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed">
+                      SamparkSetu emerged from a powerful realization: despite our hyper-connected world, the process of
+                      recovering lost items remains fragmented and inefficient. Founded in 2023, we represent the
+                      perfect fusion of cutting-edge technology with human compassion.
+                    </p>
+                  </div>
+                </motion.div>
 
-                <h2 className="text-2xl font-semibold mb-4 text-white">Our Vision</h2>
-                <p className="mb-6">
-                  We envision a world where the stress and heartache of losing valuable items is minimized through a
-                  supportive community platform powered by cutting-edge technology. We aim to be the most trusted lost
-                  and found service globally, known for our integrity, innovation, and impact.
-                </p>
+                {/* Our Name */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-800 overflow-hidden hover:border-purple-500/50 transition-all duration-300 shadow-lg hover:shadow-purple-500/20 h-full"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-purple-500/20 p-3 rounded-full">
+                        <CheckCircle2 className="h-6 w-6 text-purple-400" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-purple-300">Our Name</h3>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed">
+                      "SamparkSetu" combines two Sanskrit words: "Sampark" (connection) and "Setu" (bridge). This
+                      perfectly encapsulates our purpose — building bridges between people and their lost possessions
+                      while creating meaningful connections in the process.
+                    </p>
+                  </div>
+                </motion.div>
 
-                <h2 className="text-2xl font-semibold mb-4 text-white">Our Story</h2>
-                <p className="mb-6">
-                  SamparkSetu was born from a personal experience. Our founder, Aanya Sharma, lost a cherished family
-                  heirloom while traveling and experienced firsthand the frustration and inefficiency of traditional
-                  lost and found systems. This sparked the idea for a modern, technology-driven platform that could make
-                  reconnecting people with their lost items simpler and more effective.
-                </p>
-                <p className="mb-6">
-                  Launched in 2023, SamparkSetu has already helped thousands of people recover their lost items, from
-                  everyday essentials like keys and wallets to irreplaceable sentimental items. Our sci-fi inspired
-                  design reflects our commitment to using advanced technology to solve everyday problems.
-                </p>
+                {/* Our Innovation */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-800 overflow-hidden hover:border-cyan-500/50 transition-all duration-300 shadow-lg hover:shadow-cyan-500/20 h-full"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-cyan-500/20 p-3 rounded-full">
+                        <CheckCircle2 className="h-6 w-6 text-cyan-400" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-cyan-300">Our Innovation</h3>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed">
+                      What sets SamparkSetu apart is our revolutionary approach to the age-old problem of lost and
+                      found. Our AI-powered matching system analyzes patterns and probabilities beyond simple
+                      descriptions, dramatically increasing recovery success rates. We've built security and privacy
+                      into our core, ensuring the process is both effective and safe.
+                    </p>
+                  </div>
+                </motion.div>
 
-                <h2 className="text-2xl font-semibold mb-4 text-white">Our Technology</h2>
-                <p className="mb-6">
-                  SamparkSetu employs sophisticated matching algorithms that analyze item descriptions, locations, and
-                  images to suggest potential matches between lost and found items. Our secure messaging system allows
-                  users to communicate safely while protecting their privacy. We're constantly innovating and improving
-                  our platform based on user feedback and technological advancements.
-                </p>
-              </CardContent>
-            </Card>
+                {/* Our Community */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-800 overflow-hidden hover:border-green-500/50 transition-all duration-300 shadow-lg hover:shadow-green-500/20 h-full"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-green-500/20 p-3 rounded-full">
+                        <CheckCircle2 className="h-6 w-6 text-green-400" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-green-300">Our Community</h3>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed">
+                      Technology alone isn't enough. SamparkSetu is built on the foundation of community and trust. We
+                      believe in the inherent goodness of people and their willingness to help others. Our platform
+                      provides the infrastructure that enables this goodwill to flourish in the digital age.
+                    </p>
+                  </div>
+                </motion.div>
 
-            <h2 className="text-3xl font-bold mb-8 text-center">Meet Our Team</h2>
+                {/* Our Journey */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/80 backdrop-blur-sm rounded-xl border border-slate-800 overflow-hidden hover:border-amber-500/50 transition-all duration-300 shadow-lg hover:shadow-amber-500/20 h-full md:col-span-2"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="bg-amber-500/20 p-3 rounded-full">
+                        <CheckCircle2 className="h-6 w-6 text-amber-400" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-amber-300">Our Journey</h3>
+                    </div>
+                    <p className="text-slate-300 leading-relaxed">
+                      Today, SamparkSetu serves thousands of users across India, with plans for global expansion. What
+                      began as a project between two passionate individuals has evolved into a vibrant platform that
+                      reunites people with cherished possessions daily. We're proud of our progress and excited about
+                      the future as we continue to refine our technology, grow our community, and bridge more gaps
+                      between the lost and found.
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-              {teamMembers.map((member, index) => (
+        {/* Mission Section */}
+        <section id="mission" className="py-20 relative">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(76,29,149,0.15),transparent_70%)]" />
+          <div className="container mx-auto px-4">
+            <div className="max-w-5xl mx-auto">
+              <motion.div style={{ opacity, scale }} className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                  Our Mission & Vision
+                </h2>
+                <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto mb-8"></div>
+              </motion.div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <motion.div
+                  initial={{ opacity: 0, x: -50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/60 backdrop-blur-sm p-8 rounded-xl border border-slate-800 hover:border-blue-500/50 transition-all duration-300 shadow-lg hover:shadow-blue-500/20"
+                >
+                  <div className="bg-blue-500/20 p-3 rounded-full w-fit mb-6">
+                    <Target className="h-8 w-8 text-blue-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4 text-blue-300">Our Mission</h3>
+                  <p className="text-slate-300 leading-relaxed">
+                    SamparkSetu aims to revolutionize the lost and found experience by leveraging cutting-edge
+                    technology to reunite people with their lost possessions. We believe that every item has a story and
+                    a rightful owner, and our mission is to bridge the gap between loss and recovery through an
+                    intuitive, secure, and community-driven platform.
+                  </p>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/60 backdrop-blur-sm p-8 rounded-xl border border-slate-800 hover:border-purple-500/50 transition-all duration-300 shadow-lg hover:shadow-purple-500/20"
+                >
+                  <div className="bg-purple-500/20 p-3 rounded-full w-fit mb-6">
+                    <Zap className="h-8 w-8 text-purple-400" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4 text-purple-300">Our Vision</h3>
+                  <p className="text-slate-300 leading-relaxed">
+                    We envision a world where the stress and heartache of losing valuable items is minimized through our
+                    innovative platform. SamparkSetu strives to create a global network of compassionate individuals who
+                    help each other recover lost items, fostering a sense of community and trust. Our vision extends
+                    beyond just recovery—we aim to redefine the entire lost and found experience.
+                  </p>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Values Section */}
+        <section className="py-20 relative bg-gradient-to-b from-black to-slate-900/50">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1),transparent_70%)]" />
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                Our Core Values
+              </h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto mb-8"></div>
+              <p className="text-slate-300 max-w-3xl mx-auto">
+                The principles that guide our innovation and service to the community
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: <Award className="h-10 w-10 text-yellow-400" />,
+                  title: "Integrity",
+                  description:
+                    "We uphold the highest standards of honesty and ethical conduct in all our operations and interactions.",
+                },
+                {
+                  icon: <Users className="h-10 w-10 text-green-400" />,
+                  title: "Community",
+                  description:
+                    "We believe in the power of community and collective effort to solve problems and create positive change.",
+                },
+                {
+                  icon: <Zap className="h-10 w-10 text-blue-400" />,
+                  title: "Innovation",
+                  description:
+                    "We continuously push the boundaries of technology to create more effective solutions for our users.",
+                },
+              ].map((value, index) => (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.2 }}
+                  viewport={{ once: true }}
+                  className="bg-slate-900/40 backdrop-blur-sm p-8 rounded-xl border border-slate-800 hover:border-blue-500/30 transition-all duration-300 text-center"
                 >
-                  <Card className="bg-slate-900/70 backdrop-blur-lg border-slate-800 h-full">
-                    <CardHeader className="flex flex-row items-center gap-4">
-                      <Avatar className="h-16 w-16">
-                        <AvatarImage src={member.avatar} alt={member.name} />
-                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <CardTitle>{member.name}</CardTitle>
-                        <CardDescription>{member.role}</CardDescription>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-slate-300">{member.bio}</p>
-                    </CardContent>
-                  </Card>
+                  <div className="bg-slate-800/50 p-4 rounded-full w-fit mx-auto mb-6">{value.icon}</div>
+                  <h3 className="text-xl font-bold mb-3 text-white">{value.title}</h3>
+                  <p className="text-slate-400">{value.description}</p>
                 </motion.div>
               ))}
             </div>
+          </div>
+        </section>
 
-            <Card className="bg-slate-900/70 backdrop-blur-lg border-slate-800">
-              <CardHeader>
-                <CardTitle className="text-2xl">Join Our Mission</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">
-                  We're always looking for passionate individuals to join our team and help us in our mission to reunite
-                  people with their lost items. If you're interested in working with us, check out our careers page or
-                  reach out to us directly.
-                </p>
-                <p>Together, we can create a world where losing something doesn't mean losing it forever.</p>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
+        {/* Team Section */}
+        <section id="team" className="py-20 relative">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(76,29,149,0.15),transparent_70%)]" />
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                Meet Our Team
+              </h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto mb-8"></div>
+              <p className="text-slate-300 max-w-3xl mx-auto">
+                The brilliant minds behind SamparkSetu working tirelessly to reunite people with their lost items
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                viewport={{ once: true }}
+                className="group"
+              >
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-900/40 to-slate-900 p-1">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/30 to-purple-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"></div>
+                  <div className="relative bg-slate-900 rounded-lg overflow-hidden p-6">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="relative w-48 h-48 mb-6 rounded-full overflow-hidden border-4 border-blue-500/30 group-hover:border-blue-500 transition-colors duration-300 shadow-lg shadow-blue-500/20">
+                        <Image src="/tech-lead-futuristic.png" alt="Rahul Mishra" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+
+                      <h3 className="text-2xl font-bold text-white mb-1">Rahul Mishra</h3>
+                      <p className="text-blue-400 font-medium mb-4">Developer & Technical Lead</p>
+
+                      <p className="text-slate-300 text-center mb-6">
+                        Visionary developer with expertise in cutting-edge technologies. Rahul leads the technical
+                        architecture of SamparkSetu, bringing innovative solutions to complex problems.
+                      </p>
+
+                      <div className="flex space-x-4">
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-blue-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Github className="h-5 w-5 text-white" />
+                          <span className="sr-only">GitHub</span>
+                        </a>
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-blue-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Linkedin className="h-5 w-5 text-white" />
+                          <span className="sr-only">LinkedIn</span>
+                        </a>
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-blue-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Mail className="h-5 w-5 text-white" />
+                          <span className="sr-only">Email</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="group"
+              >
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-900/40 to-slate-900 p-1">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-pink-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"></div>
+                  <div className="relative bg-slate-900 rounded-lg overflow-hidden p-6">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-purple-500/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="relative w-48 h-48 mb-6 rounded-full overflow-hidden border-4 border-purple-500/30 group-hover:border-purple-500 transition-colors duration-300 shadow-lg shadow-purple-500/20">
+                        <Image
+                          src="/content-specialist-futuristic.png"
+                          alt="Evanki Shylla"
+                          fill
+                          className="object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-purple-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+
+                      <h3 className="text-2xl font-bold text-white mb-1">Evanki Shylla</h3>
+                      <p className="text-purple-400 font-medium mb-4">Content & Documentation Lead</p>
+
+                      <p className="text-slate-300 text-center mb-6">
+                        Creative storyteller and documentation expert. Evanki crafts compelling content and ensures that
+                        SamparkSetu's vision is communicated clearly to our users.
+                      </p>
+
+                      <div className="flex space-x-4">
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-purple-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Github className="h-5 w-5 text-white" />
+                          <span className="sr-only">GitHub</span>
+                        </a>
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-purple-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Linkedin className="h-5 w-5 text-white" />
+                          <span className="sr-only">LinkedIn</span>
+                        </a>
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-purple-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Mail className="h-5 w-5 text-white" />
+                          <span className="sr-only">Email</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Journey Section */}
+        <section className="py-20 relative">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.1),transparent_70%)]" />
+          <div className="container mx-auto px-4">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                Our Journey
+              </h2>
+              <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 mx-auto mb-8"></div>
+            </motion.div>
+
+            <div className="max-w-4xl mx-auto relative">
+              {/* Timeline line */}
+              <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-blue-500 to-purple-600"></div>
+
+              {/* Timeline items */}
+              {[
+                {
+                  year: "2023",
+                  title: "The Inception",
+                  description:
+                    "SamparkSetu was born from a simple idea: to create a platform that uses technology to reunite people with their lost possessions.",
+                },
+                {
+                  year: "2024",
+                  title: "Platform Launch",
+                  description:
+                    "After months of development and testing, we launched our platform with core features for reporting and finding lost items.",
+                },
+                {
+                  year: "2025",
+                  title: "Growing Community",
+                  description:
+                    "SamparkSetu continues to evolve with new features and a growing community of users helping each other recover lost items.",
+                },
+              ].map((item, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.2 }}
+                  viewport={{ once: true }}
+                  className={`relative flex items-center mb-12 ${index % 2 === 0 ? "flex-row-reverse" : ""}`}
+                >
+                  <div className={`w-1/2 ${index % 2 === 0 ? "pl-12" : "pr-12 text-right"}`}>
+                    <div className="bg-slate-900/60 backdrop-blur-sm p-6 rounded-xl border border-slate-800 hover:border-blue-500/30 transition-all duration-300 shadow-lg hover:shadow-blue-500/10">
+                      <h3 className="text-xl font-bold text-blue-400 mb-1">{item.title}</h3>
+                      <p className="text-slate-300">{item.description}</p>
+                    </div>
+                  </div>
+
+                  <div className="absolute left-1/2 transform -translate-x-1/2 w-12 h-12 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center z-10">
+                      <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center">
+                        <div className="w-4 h-4 rounded-full bg-blue-500"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`w-1/2 ${index % 2 === 0 ? "pr-12 text-right" : "pl-12"}`}>
+                    <div className="text-3xl font-bold text-white opacity-30">{item.year}</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Join Us CTA */}
+        <section className="py-20 relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/50 to-black"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(76,29,149,0.2),transparent_70%)]"></div>
+
+          <div className="container mx-auto px-4 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="max-w-4xl mx-auto bg-gradient-to-br from-slate-900/80 to-black/80 backdrop-blur-lg p-10 rounded-2xl border border-slate-800 text-center"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                Join Our Mission
+              </h2>
+
+              <p className="text-slate-300 mb-8 text-lg">
+                Be part of a community that's making a difference. Together, we can help reunite people with their lost
+                possessions and create meaningful connections.
+              </p>
+
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="inline-block">
+                <a
+                  href="/login"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full transition-all duration-300 shadow-lg shadow-blue-500/20"
+                >
+                  Get Started Today
+                </a>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
       </div>
-
       <Footer />
     </div>
   )
 }
-
