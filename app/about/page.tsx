@@ -308,7 +308,7 @@ export default function AboutPage() {
               </p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -322,7 +322,7 @@ export default function AboutPage() {
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative z-10 flex flex-col items-center">
-                      <div className="relative w-48 h-48 mb-6 rounded-full overflow-hidden border-4 border-blue-500/30 group-hover:border-blue-500 transition-colors duration-300 shadow-lg shadow-blue-500/20">
+                      <div className="relative w-40 h-40 mb-6 rounded-full overflow-hidden border-4 border-blue-500/30 group-hover:border-blue-500 transition-colors duration-300 shadow-lg shadow-blue-500/20">
                         <Image src="/tech-lead-futuristic.png" alt="Rahul Mishra" fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
@@ -370,13 +370,67 @@ export default function AboutPage() {
                 viewport={{ once: true }}
                 className="group"
               >
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-teal-900/40 to-slate-900 p-1">
+                  <div className="absolute inset-0 bg-gradient-to-br from-teal-500/30 to-blue-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"></div>
+                  <div className="relative bg-slate-900 rounded-lg overflow-hidden p-6">
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-teal-500/10 to-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    <div className="relative z-10 flex flex-col items-center">
+                      <div className="relative w-40 h-40 mb-6 rounded-full overflow-hidden border-4 border-teal-500/30 group-hover:border-teal-500 transition-colors duration-300 shadow-lg shadow-teal-500/20">
+                        <Image src="/placeholder.svg?key=hqz51" alt="Amit Bhowmik" fill className="object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-teal-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+
+                      <h3 className="text-2xl font-bold text-white mb-1">Amit Bhowmik</h3>
+                      <p className="text-teal-400 font-medium mb-4">Lead Backend Developer</p>
+
+                      <p className="text-slate-300 text-center mb-6">
+                        Expert backend architect with deep knowledge of scalable systems. Amit ensures SamparkSetu's
+                        infrastructure is robust, secure, and performs flawlessly under any load.
+                      </p>
+
+                      <div className="flex space-x-4">
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-teal-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Github className="h-5 w-5 text-white" />
+                          <span className="sr-only">GitHub</span>
+                        </a>
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-teal-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Linkedin className="h-5 w-5 text-white" />
+                          <span className="sr-only">LinkedIn</span>
+                        </a>
+                        <a
+                          href="#"
+                          className="bg-slate-800 hover:bg-teal-600 p-2 rounded-full transition-colors duration-300"
+                        >
+                          <Mail className="h-5 w-5 text-white" />
+                          <span className="sr-only">Email</span>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                viewport={{ once: true }}
+                className="group"
+              >
                 <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-900/40 to-slate-900 p-1">
                   <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-pink-600/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"></div>
                   <div className="relative bg-slate-900 rounded-lg overflow-hidden p-6">
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-purple-500/10 to-pink-600/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
                     <div className="relative z-10 flex flex-col items-center">
-                      <div className="relative w-48 h-48 mb-6 rounded-full overflow-hidden border-4 border-purple-500/30 group-hover:border-purple-500 transition-colors duration-300 shadow-lg shadow-purple-500/20">
+                      <div className="relative w-40 h-40 mb-6 rounded-full overflow-hidden border-4 border-purple-500/30 group-hover:border-purple-500 transition-colors duration-300 shadow-lg shadow-purple-500/20">
                         <Image
                           src="/content-specialist-futuristic.png"
                           alt="Evanki Shylla"

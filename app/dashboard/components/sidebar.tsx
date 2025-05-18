@@ -11,7 +11,6 @@ import {
   Search,
   AlertTriangle,
   CheckCircle,
-  MessageSquare,
   User,
   Settings,
   LogOut,
@@ -21,6 +20,7 @@ import {
   HandshakeIcon,
   Mail,
   Compass,
+  Sparkles,
 } from "lucide-react"
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -116,21 +116,21 @@ export function Sidebar() {
       icon: CheckCircle,
       href: "/dashboard/found",
     },
+    // {
+    //   title: "Matches",
+    //   icon: HandshakeIcon,
+    //   href: "/dashboard/matches",
+    // },
     {
-      title: "Matches",
-      icon: HandshakeIcon,
-      href: "/dashboard/matches",
+      title: "Item Matcher",
+      icon: Sparkles,
+      href: "/dashboard/item-matcher",
     },
     {
       title: "Messages",
       icon: Mail,
       href: "/dashboard/messages",
       badge: unreadCount > 0 ? unreadCount : null,
-    },
-    {
-      title: "Chat",
-      icon: MessageSquare,
-      href: "/dashboard/chat",
     },
     {
       title: "Profile",

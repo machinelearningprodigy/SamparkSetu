@@ -290,7 +290,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-white">{item.title || "Untitled Item"}</div>
+                      <div className="font-medium text-white">{item.name || item.title || "Untitled Item"}</div>
                       <div className="text-sm text-slate-400">
                         {item.type === "lost" ? "Lost" : "Found"} • {item.location || "Unknown location"}
                       </div>

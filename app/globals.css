@@ -155,3 +155,122 @@
 .animate-float-vertical {
   animation: float-vertical 5s ease-in-out infinite;
 }
+
+@keyframes typing {
+  0% {
+    width: 0;
+  }
+  30% {
+    width: 100%;
+  }
+  80% {
+    width: 100%;
+  }
+  100% {
+    width: 0;
+  }
+}
+
+.typing-animation {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 4s steps(40, end) infinite;
+}
+
+@keyframes bot-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) rotate(-5deg);
+  }
+  75% {
+    transform: translateY(-5px) rotate(5deg);
+  }
+}
+
+.animate-bot-float {
+  animation: bot-float 3s ease-in-out infinite;
+}
+
+/* Slow pulse animation */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+/* Shadow glow effect */
+.shadow-glow {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+}
+
+/* Sci-fi circuit pattern */
+.bg-circuit {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10,30 L90,30' stroke='white' stroke-width='0.5' fill='none' /%3E%3Cpath d='M10,50 L90,50' stroke='white' stroke-width='0.5' fill='none' /%3E%3Cpath d='M10,70 L90,70' stroke='white' stroke-width='0.5' fill='none' /%3E%3Cpath d='M30,10 L30,90' stroke='white' stroke-width='0.5' fill='none' /%3E%3Cpath d='M50,10 L50,90' stroke='white' stroke-width='0.5' fill='none' /%3E%3Cpath d='M70,10 L70,90' stroke='white' stroke-width='0.5' fill='none' /%3E%3Ccircle cx='30' cy='30' r='2' fill='white' /%3E%3Ccircle cx='50' cy='50' r='2' fill='white' /%3E%3Ccircle cx='70' cy='70' r='2' fill='white' /%3E%3C/svg%3E");
+  background-size: 100px 100px;
+  background-repeat: repeat;
+}
+
+/* Holographic effect */
+.holographic {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.2) 0%,
+    rgba(16, 185, 129, 0.2) 25%,
+    rgba(124, 58, 237, 0.2) 50%,
+    rgba(236, 72, 153, 0.2) 75%,
+    rgba(59, 130, 246, 0.2) 100%
+  );
+  background-size: 400% 400%;
+  animation: holographic 15s ease infinite;
+}
+
+@keyframes holographic {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Sci-fi scan line effect */
+.scan-lines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-lines::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.05) 0.5%, transparent 1%);
+  pointer-events: none;
+}
+
+/* Cyber glow effect */
+.cyber-glow {
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5), 0 0 20px rgba(6, 182, 212, 0.3);
+  transition: box-shadow 0.3s ease;
+}
+
+.cyber-glow:hover {
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.7), 0 0 30px rgba(6, 182, 212, 0.5);
+}

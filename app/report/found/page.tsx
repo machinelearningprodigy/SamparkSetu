@@ -165,6 +165,7 @@ export default function ReportFoundItemPage() {
         created_at: serverTimestamp(),
       })
 
+
       setUploadProgress(100)
       setUploadStatus("Success!")
 
@@ -173,6 +174,7 @@ export default function ReportFoundItemPage() {
         description: "Your found item has been reported successfully!",
       })
 
+      
       router.push("/dashboard/found")
     } catch (error: any) {
       console.error("Error in form submission:", error)
