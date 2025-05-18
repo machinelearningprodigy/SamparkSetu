@@ -11,7 +11,7 @@ export interface Item {
   user_id: string
   images: string[]
   condition?: string
-}
+} 
 
 export interface Match {
   id?: string
