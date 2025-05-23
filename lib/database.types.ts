@@ -75,3 +75,23 @@ export interface Notification {
   meetup_id?: string
   item_id?: string
 }
+
+export interface Payment {
+  id?: string
+  created_at: string
+  sender_id: string
+  receiver_id: string
+  item_id: string
+  match_id?: string
+  meetup_id?: string
+  amount: number
+  platform_fee: number
+  receiver_amount: number
+  status: "pending" | "completed" | "failed"
+  payment_type: "item_payment" | "reward_payment"
+  order_id?: string
+  payment_session_id?: string
+  payment_details?: any
+  completed_at?: string
+  failed_at?: string
+}

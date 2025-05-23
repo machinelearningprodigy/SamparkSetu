@@ -1,17 +1,8 @@
 import { NextResponse } from "next/server"
-import { collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore"
+import { collection, query, where, getDocs, getDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { findMatchesWithGemini, generateMockMatches, generateFallbackMockMatches } from "@/lib/gemini-client"
+import { calculateMatchScore } from "@/lib/matching-algorithm"
 import type { Item } from "@/lib/database.types"
-
-/**
- * Helper function to log API errors and return a friendly message
- */
-function handleApiError(error: any, context: string): string {
-  const errorMessage = error instanceof Error ? error.message : String(error)
-  console.error(`Error in ${context}:`, errorMessage)
-  return `Failed to process request: ${errorMessage.substring(0, 100)}${errorMessage.length > 100 ? "..." : ""}`
-}
 
 export async function POST(request: Request) {
   try {
@@ -37,7 +28,7 @@ export async function POST(request: Request) {
 
     // Fetch all items of the opposite type
     const oppositeType = targetItem.type === "lost" ? "found" : "lost"
-    const allItemsQuery = query(itemsRef, where("type", "==", oppositeType))
+    const allItemsQuery = query(itemsRef, where("type", "==", oppositeType), where("user_id", "!=", userId))
     const allItemsSnapshot = await getDocs(allItemsQuery)
 
     const allItems = allItemsSnapshot.docs.map((doc) => ({
@@ -45,121 +36,127 @@ export async function POST(request: Request) {
       ...doc.data(),
     })) as Item[]
 
-    // Filter out items from the same user
-    const potentialItems = allItems.filter((item) => item.user_id !== userId)
+    // Calculate match scores for all potential items
+    const matches = await Promise.all(
+      allItems.map(async (item) => {
+        // Calculate match score
+        const score =
+          targetItem.type === "lost" ? calculateMatchScore(targetItem, item) : calculateMatchScore(item, targetItem)
 
-    let matches = []
+        // Only include items with decent match score
+        if (score < 0.5) return null
 
-    // If there are potential items, use Gemini to find matches
-    if (potentialItems.length > 0) {
-      try {
-        const matchRequest = {
-          targetItem: {
-            id: targetItem.id,
-            name: targetItem.name || targetItem.title || "Untitled Item",
-            category: targetItem.category || "Uncategorized",
-            description: targetItem.description,
-            date: targetItem.date || new Date().toISOString().split("T")[0],
-            location: targetItem.location || "Unknown",
-            type: targetItem.type,
-            images: targetItem.images,
-          },
-          potentialItems: potentialItems.map((item) => ({
-            id: item.id,
-            name: item.name || item.title || "Untitled Item",
-            category: item.category || "Uncategorized",
-            description: item.description,
-            date: item.date || new Date().toISOString().split("T")[0],
-            location: item.location || "Unknown",
-            type: item.type,
-            images: item.images,
-            user_id: item.user_id,
-          })),
-        }
+        // Get user profile for the item owner
+        const userDoc = await getDoc(doc(db, "profiles", item.user_id))
+        const otherUser = userDoc.exists() ? { id: userDoc.id, ...userDoc.data() } : null
 
-        matches = await findMatchesWithGemini(matchRequest)
-      } catch (error) {
-        console.error("Error using Gemini for matching:", error)
-        // If Gemini fails, we'll continue and generate mock matches
-      }
-    }
-
-    // If no matches found, generate mock matches
-    if (matches.length === 0) {
-      try {
-        matches = await generateMockMatches({
-          id: targetItem.id,
-          name: targetItem.name || targetItem.title || "Untitled Item",
-          category: targetItem.category || "Uncategorized",
-          description: targetItem.description,
-          date: targetItem.date || new Date().toISOString().split("T")[0],
-          location: targetItem.location || "Unknown",
-          type: targetItem.type,
-        })
-      } catch (error) {
-        console.error("Error generating mock matches:", error)
-        // If all else fails, use our fallback
-        matches = generateFallbackMockMatches({
-          id: targetItem.id,
-          name: targetItem.name || targetItem.title || "Untitled Item",
-          category: targetItem.category || "Uncategorized",
-          description: targetItem.description,
-          date: targetItem.date || new Date().toISOString().split("T")[0],
-          location: targetItem.location || "Unknown",
-          type: targetItem.type,
-        })
-      }
-    }
-
-    // Store real matches in the database (skip for mock matches)
-    const matchPromises = matches
-      .filter((match) => !match.id.startsWith("mock_"))
-      .map(async (match) => {
-        // Check if this match already exists
-        const matchesRef = collection(db, "matches")
-        const existingMatchQuery = query(
-          matchesRef,
-          where("lost_item_id", "==", targetItem.type === "lost" ? targetItem.id : match.id),
-          where("found_item_id", "==", targetItem.type === "found" ? targetItem.id : match.id),
+        // Generate match reason
+        const matchReason = generateMatchReason(
+          targetItem.type === "lost" ? targetItem : item,
+          targetItem.type === "found" ? targetItem : item,
+          score,
         )
 
-        const existingMatchSnapshot = await getDocs(existingMatchQuery)
-
-        if (existingMatchSnapshot.empty) {
-          // Create a new match
-          return addDoc(matchesRef, {
-            lost_item_id: targetItem.type === "lost" ? targetItem.id : match.id,
-            found_item_id: targetItem.type === "found" ? targetItem.id : match.id,
-            match_score: match.matchScore / 100, // Convert to 0-1 scale
-            match_reason: match.matchReason,
-            status: "suggested",
-            created_at: serverTimestamp(),
-            created_by: "gemini",
-          })
+        return {
+          ...item,
+          matchScore: score,
+          matchReason,
+          otherUser,
         }
+      }),
+    )
 
-        return null
-      })
-
-    await Promise.all(matchPromises)
+    // Filter out null values, sort by score
+    const validMatches = matches.filter(Boolean).sort((a, b) => b!.matchScore - a!.matchScore)
 
     return NextResponse.json({
       success: true,
-      matches: matches.map((match) => ({
-        id: match.id,
-        name: match.name,
-        category: match.category,
-        location: match.location,
-        date: match.date,
-        description: match.description,
-        // Handle different score ranges - Gemini returns 0-100, our local algorithm returns 0-100
-        score: match.matchScore > 1 ? match.matchScore / 100 : match.matchScore,
-        reason: match.matchReason,
-        isMock: match.id.startsWith("mock_"),
-      })),
+      matches: validMatches,
     })
   } catch (error) {
     console.error("Error generating matches:", error)
     return NextResponse.json({ error: "Failed to generate matches" }, { status: 500 })
   }
+}
+
+// Generate a human-readable reason for the match
+function generateMatchReason(lostItem: Item, foundItem: Item, score: number): string {
+  const reasons = []
+
+  // Check category match
+  if (lostItem.category && foundItem.category && lostItem.category.toLowerCase() === foundItem.category.toLowerCase()) {
+    reasons.push(`matching category (${lostItem.category})`)
+  }
+
+  // Check name match
+  if (lostItem.name && foundItem.name) {
+    const nameWords1 = lostItem.name
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((w) => w.length > 3)
+    const nameWords2 = foundItem.name
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((w) => w.length > 3)
+    const commonNameWords = nameWords1.filter((word) => nameWords2.includes(word))
+
+    if (commonNameWords.length > 0) {
+      reasons.push(`similar item name`)
+    }
+  }
+
+  // Check date proximity
+  if (lostItem.date && foundItem.date) {
+    const lostDate = new Date(lostItem.date)
+    const foundDate = new Date(foundItem.date)
+    const daysDifference = Math.abs(Math.floor((lostDate.getTime() - foundDate.getTime()) / (1000 * 60 * 60 * 24)))
+
+    if (daysDifference <= 7) {
+      reasons.push(`reported within ${daysDifference} days of each other`)
+    }
+  }
+
+  // Check location similarity
+  if (lostItem.location && foundItem.location) {
+    if (lostItem.location.toLowerCase() === foundItem.location.toLowerCase()) {
+      reasons.push(`exact same location (${lostItem.location})`)
+    } else {
+      const loc1 = lostItem.location
+        .toLowerCase()
+        .replace(/road|street|ave|avenue|st|blvd|boulevard|building|bldg/g, "")
+      const loc2 = foundItem.location
+        .toLowerCase()
+        .replace(/road|street|ave|avenue|st|blvd|boulevard|building|bldg/g, "")
+
+      const words1 = loc1.split(/[,\s]+/).filter((w) => w.length > 3)
+      const words2 = loc2.split(/[,\s]+/).filter((w) => w.length > 3)
+      const commonWords = words1.filter((word) => words2.includes(word))
+
+      if (commonWords.length > 0) {
+        reasons.push(`similar location`)
+      }
+    }
+  }
+
+  // Check description similarity
+  if (lostItem.description && foundItem.description) {
+    const desc1 = lostItem.description.toLowerCase()
+    const desc2 = foundItem.description.toLowerCase()
+
+    const descWords1 = desc1.split(/\W+/).filter((w) => w.length > 3)
+    const descWords2 = desc2.split(/\W+/).filter((w) => w.length > 3)
+    const commonDescWords = descWords1.filter((word) => descWords2.includes(word))
+
+    if (commonDescWords.length >= 2) {
+      reasons.push(`similar item description`)
+    }
+  }
+
+  const scorePercentage = Math.round(score * 100)
+
+  if (reasons.length === 0) {
+    return `Potential match with ${scorePercentage}% confidence.`
+  }
+
+  return `Potential match based on ${reasons.join(", ")} with ${scorePercentage}% confidence.`
 }

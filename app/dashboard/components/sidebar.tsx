@@ -21,6 +21,7 @@ import {
   Mail,
   Compass,
   Sparkles,
+  CreditCard,
 } from "lucide-react"
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -116,11 +117,11 @@ export function Sidebar() {
       icon: CheckCircle,
       href: "/dashboard/found",
     },
-    // {
-    //   title: "Matches",
-    //   icon: HandshakeIcon,
-    //   href: "/dashboard/matches",
-    // },
+    {
+      title: "Matches",
+      icon: HandshakeIcon,
+      href: "/dashboard/matches",
+    },
     {
       title: "Item Matcher",
       icon: Sparkles,
@@ -131,6 +132,11 @@ export function Sidebar() {
       icon: Mail,
       href: "/dashboard/messages",
       badge: unreadCount > 0 ? unreadCount : null,
+    },
+    {
+      title: "Payments",
+      icon: CreditCard,
+      href: "/dashboard/payments",
     },
     {
       title: "Profile",

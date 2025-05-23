@@ -25,6 +25,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { motion } from "framer-motion"
 import { doc, getDoc, collection, query, where, limit, getDocs, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
+// Import the PaymentModal component
+import { PaymentModal } from "@/components/payment-modal"
 
 export default function ItemDetailsPage() {
   const { id } = useParams()
@@ -37,6 +39,8 @@ export default function ItemDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [suggestedMatches, setSuggestedMatches] = useState<any[]>([])
+  // Add state for payment modal inside the component
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
 
   useEffect(() => {
     const fetchItemDetails = async () => {
@@ -115,6 +119,26 @@ export default function ItemDetailsPage() {
     fetchItemDetails()
   }, [id, toast])
 
+  // Add a function to handle payment completion
+  const handlePaymentComplete = async () => {
+    toast({
+      title: "Payment Successful",
+      description: "Your payment has been processed successfully. You can now proceed with the item exchange.",
+    })
+
+    // Refresh item data
+    const itemRef = doc(db, "items", id as string)
+    const itemSnapshot = await getDoc(itemRef)
+
+    if (itemSnapshot.exists()) {
+      setItem({
+        id: itemSnapshot.id,
+        ...itemSnapshot.data(),
+      })
+    }
+  }
+
+  // Modify the handleContactOwner function to open payment modal for found items
   const handleContactOwner = async () => {
     if (!user) {
       toast({
@@ -126,10 +150,16 @@ export default function ItemDetailsPage() {
       return
     }
 
-    // Create or navigate to chat
-    router.push(`/dashboard/chat?item=${id}`)
+    // For found items that require payment, open payment modal
+    if (item.type === "found" && item.requires_payment) {
+      setIsPaymentModalOpen(true)
+    } else {
+      // Create or navigate to chat
+      router.push(`/dashboard/chat?item=${id}`)
+    }
   }
 
+  // Modify the handleClaimItem function to open payment modal
   const handleClaimItem = async () => {
     if (!user) {
       toast({
@@ -141,28 +171,33 @@ export default function ItemDetailsPage() {
       return
     }
 
-    try {
-      // Create a match
-      await addDoc(collection(db, "matches"), {
-        lost_item_id: user.uid,
-        found_item_id: id,
-        status: "suggested",
-        created_at: serverTimestamp(),
-      })
+    // For items that require payment, open payment modal
+    if (item.requires_payment) {
+      setIsPaymentModalOpen(true)
+    } else {
+      try {
+        // Create a match
+        await addDoc(collection(db, "matches"), {
+          lost_item_id: user.uid,
+          found_item_id: id,
+          status: "suggested",
+          created_at: serverTimestamp(),
+        })
 
-      toast({
-        title: "Claim Submitted",
-        description: "Your claim has been submitted. The finder will be notified.",
-      })
+        toast({
+          title: "Claim Submitted",
+          description: "Your claim has been submitted. The finder will be notified.",
+        })
 
-      // Navigate to chat
-      router.push(`/dashboard/chat?item=${id}`)
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to claim item",
-        variant: "destructive",
-      })
+        // Navigate to chat
+        router.push(`/dashboard/chat?item=${id}`)
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to claim item",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -391,9 +426,44 @@ export default function ItemDetailsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Payment Status */}
+                  {item.payment_status && (
+                    <div
+                      className={`p-3 rounded-md mb-4 ${
+                        item.payment_status === "paid"
+                          ? "bg-green-900/20 border border-green-800/30 text-green-300"
+                          : "bg-blue-900/20 border border-blue-800/30 text-blue-300"
+                      }`}
+                    >
+                      <p className="text-sm">
+                        {item.payment_status === "paid"
+                          ? "Payment has been completed for this item."
+                          : "This item requires a secure payment to proceed with the exchange."}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Platform Fee Notice */}
+                  {(item.type === "found" || item.requires_payment) && !item.payment_status && (
+                    <div className="bg-blue-900/20 border border-blue-800/30 p-3 rounded-md text-sm text-blue-300 mb-4">
+                      <p>
+                        A 10% platform fee will be applied to secure the transaction and protect both parties during the
+                        exchange.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
-                  {item.type === "lost" ? (
+                  {item.payment_status === "paid" ? (
+                    <Button
+                      onClick={() => router.push(`/dashboard/chat?item=${id}`)}
+                      className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Go to Chat
+                    </Button>
+                  ) : item.type === "lost" ? (
                     <Button
                       onClick={handleContactOwner}
                       className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
@@ -470,6 +540,20 @@ export default function ItemDetailsPage() {
         </div>
       </div>
 
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        itemId={id as string}
+        itemName={item?.name || ""}
+        recipientId={item?.user_id || ""}
+        recipientDetails={{
+          name: owner?.username || "User",
+          email: owner?.email || "user@example.com",
+          phone: owner?.phone || "0000000000",
+        }}
+        onPaymentComplete={handlePaymentComplete}
+      />
       <Footer />
     </div>
   )

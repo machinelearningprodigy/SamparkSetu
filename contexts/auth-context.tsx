@@ -36,9 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       console.log("Auth state changed:", currentUser?.email)
       setUser(currentUser)
-      setIsLoading(true) // Keep loading until we check profile status
 
-      // If user is logged in, check if they need to complete onboarding
+      // Only set loading to true if we need to check profile
       if (currentUser) {
         try {
           const profileRef = doc(db, "profiles", currentUser.uid)
@@ -85,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem("needsOnboarding")
       }
 
+      // Always set loading to false when we're done
       setIsLoading(false)
     })
 

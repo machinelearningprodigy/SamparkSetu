@@ -183,13 +183,13 @@ export function Footer() {
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-900/50 mr-3">
                   <Phone className="w-4 h-4 text-purple-400" />
                 </div>
-                <span className="text-slate-400 text-sm">+91 123 456 7890</span>
+                <span className="text-slate-400 text-sm">+91 9085471314</span>
               </div>
               <div className="flex items-center">
                 <div className="flex items-center justify-center w-8 h-8 rounded-full bg-pink-900/50 mr-3">
                   <MapPin className="w-4 h-4 text-pink-400" />
                 </div>
-                <span className="text-slate-400 text-sm">Bangalore, India</span>
+                <span className="text-slate-400 text-sm">Guwahati, India</span>
               </div>
             </div>
 

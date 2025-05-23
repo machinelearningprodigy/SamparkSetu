@@ -323,7 +323,7 @@ export default function AboutPage() {
 
                     <div className="relative z-10 flex flex-col items-center">
                       <div className="relative w-40 h-40 mb-6 rounded-full overflow-hidden border-4 border-blue-500/30 group-hover:border-blue-500 transition-colors duration-300 shadow-lg shadow-blue-500/20">
-                        <Image src="/tech-lead-futuristic.png" alt="Rahul Mishra" fill className="object-cover" />
+                        <Image src="/rahulmishra.jpeg" alt="Rahul Mishra" fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
 
@@ -337,21 +337,21 @@ export default function AboutPage() {
 
                       <div className="flex space-x-4">
                         <a
-                          href="#"
+                          href="https://github.com/machinelearningprodigy"
                           className="bg-slate-800 hover:bg-blue-600 p-2 rounded-full transition-colors duration-300"
                         >
                           <Github className="h-5 w-5 text-white" />
                           <span className="sr-only">GitHub</span>
                         </a>
                         <a
-                          href="#"
+                          href="https://www.linkedin.com/in/rahul-mishra-9a8826269"
                           className="bg-slate-800 hover:bg-blue-600 p-2 rounded-full transition-colors duration-300"
                         >
                           <Linkedin className="h-5 w-5 text-white" />
                           <span className="sr-only">LinkedIn</span>
                         </a>
                         <a
-                          href="#"
+                          href="mailto:avaantivirus2021@gmail.com"
                           className="bg-slate-800 hover:bg-blue-600 p-2 rounded-full transition-colors duration-300"
                         >
                           <Mail className="h-5 w-5 text-white" />
@@ -377,7 +377,7 @@ export default function AboutPage() {
 
                     <div className="relative z-10 flex flex-col items-center">
                       <div className="relative w-40 h-40 mb-6 rounded-full overflow-hidden border-4 border-teal-500/30 group-hover:border-teal-500 transition-colors duration-300 shadow-lg shadow-teal-500/20">
-                        <Image src="/placeholder.svg?key=hqz51" alt="Amit Bhowmik" fill className="object-cover" />
+                        <Image src="/amit.jpg" alt="Amit Bhowmik" fill className="object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-t from-teal-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       </div>
 
@@ -432,7 +432,7 @@ export default function AboutPage() {
                     <div className="relative z-10 flex flex-col items-center">
                       <div className="relative w-40 h-40 mb-6 rounded-full overflow-hidden border-4 border-purple-500/30 group-hover:border-purple-500 transition-colors duration-300 shadow-lg shadow-purple-500/20">
                         <Image
-                          src="/content-specialist-futuristic.png"
+                          src="/evankishylla.png"
                           alt="Evanki Shylla"
                           fill
                           className="object-cover"
@@ -450,7 +450,7 @@ export default function AboutPage() {
 
                       <div className="flex space-x-4">
                         <a
-                          href="#"
+                          href="https://github.com/Shylla01"
                           className="bg-slate-800 hover:bg-purple-600 p-2 rounded-full transition-colors duration-300"
                         >
                           <Github className="h-5 w-5 text-white" />
@@ -464,7 +464,7 @@ export default function AboutPage() {
                           <span className="sr-only">LinkedIn</span>
                         </a>
                         <a
-                          href="#"
+                          href="mailto:shyllaevanki@gmail.com"
                           className="bg-slate-800 hover:bg-purple-600 p-2 rounded-full transition-colors duration-300"
                         >
                           <Mail className="h-5 w-5 text-white" />
