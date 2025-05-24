@@ -1,44 +1,27 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { auth } from "@/lib/firebase-admin"
-import { db } from "@/lib/firebase-admin"
+import { adminDb } from "@/lib/firebase-admin"
+import { NextResponse } from "next/server"
 
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    // Get authorization token
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const { id, paymentStatus } = await req.json()
+
+    if (!id) {
+      return new NextResponse("Missing item ID", { status: 400 })
     }
 
-    const token = authHeader.split("Bearer ")[1]
-    const decodedToken = await auth.verifyIdToken(token)
-    const userId = decodedToken.uid
-
-    // Get request body
-    const body = await request.json()
-    const { itemId, status } = body
-
-    if (!itemId || !status) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    if (!paymentStatus) {
+      return new NextResponse("Missing payment status", { status: 400 })
     }
 
-    // Get the item
-    const itemRef = db.collection("items").doc(itemId)
-    const itemDoc = await itemRef.get()
-
-    if (!itemDoc.exists) {
-      return NextResponse.json({ error: "Item not found" }, { status: 404 })
-    }
-
-    // Update the item
-    await itemRef.update({
-      payment_status: status,
-      updated_at: new Date(),
+    const item = await adminDb.collection("items").doc(id).update({
+      paymentStatus: paymentStatus,
     })
 
-    return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error("Error updating item payment status:", error)
-    return NextResponse.json({ error: error.message || "An error occurred while updating the item" }, { status: 500 })
+    return NextResponse.json(item, {
+      status: 200,
+    })
+  } catch (error) {
+    console.log("[UPDATE_PAYMENT_STATUS]", error)
+    return new NextResponse("Internal error", { status: 500 })
   }
 }

@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import axios from "axios"
-import { auth } from "@/lib/firebase-admin"
-import { db } from "@/lib/firebase-admin"
+import { auth, adminDb } from "@/lib/firebase-admin"
 import crypto from "crypto"
 
 // Generate a unique order ID
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
 
       // Update the payment record with order ID
       if (paymentId) {
-        await db.collection("payments").doc(paymentId).update({
+        await adminDb.collection("payments").doc(paymentId).update({
           orderId: orderId,
           cashfreeOrderId: response.data.cf_order_id,
           paymentLink: response.data.payment_link,

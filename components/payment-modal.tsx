@@ -136,9 +136,20 @@ export function PaymentModal({
       }
     } catch (error: any) {
       console.error("Payment error:", error)
+
+      let errorMessage = "Failed to process payment"
+
+      if (error.message?.includes("Missing or insufficient permissions")) {
+        errorMessage = "Permission denied. Please ensure you're logged in and try again."
+      } else if (error.message?.includes("network")) {
+        errorMessage = "Network error. Please check your connection and try again."
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+
       toast({
         title: "Payment Error",
-        description: error.message || "Failed to process payment",
+        description: errorMessage,
         variant: "destructive",
       })
       setIsLoading(false)
