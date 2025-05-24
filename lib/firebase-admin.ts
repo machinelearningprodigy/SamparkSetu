@@ -1,41 +1,35 @@
 import { initializeApp, getApps, cert } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
-import { env, validateEnv } from "./env"
 
-// Skip validation during build time
-if (!env.IS_BUILD_TIME) {
-  validateEnv()
-}
+// Check if we're in build time
+const isBuildTime = process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV
 
-const firebaseAdminConfig = {
-  credential: cert({
-    projectId: env.FIREBASE_PROJECT_ID || "build-placeholder",
-    clientEmail: env.FIREBASE_CLIENT_EMAIL || "build@placeholder.com",
-    privateKey: (
-      env.FIREBASE_PRIVATE_KEY || "-----BEGIN PRIVATE KEY-----\nplaceholder\n-----END PRIVATE KEY-----\n"
-    ).replace(/\\n/g, "\n"),
-  }),
-  databaseURL: env.FIREBASE_DATABASE_URL || "https://placeholder.firebaseio.com",
-}
-
-// Initialize Firebase Admin only if not in build time or if all env vars are present
-let app: any = null
+// Default exports for build time
 let auth: any = null
 let adminDb: any = null
 
-try {
-  if (
-    !env.IS_BUILD_TIME ||
-    (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY)
-  ) {
+// Only initialize Firebase Admin if not in build time and env vars are available
+if (!isBuildTime && process.env.FIREBASE_PROJECT_ID) {
+  try {
+    const firebaseAdminConfig = {
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      }),
+      databaseURL: process.env.FIREBASE_DATABASE_URL,
+    }
+
+    // Initialize Firebase Admin
     const apps = getApps()
-    app = apps.length === 0 ? initializeApp(firebaseAdminConfig) : apps[0]
+    const app = apps.length === 0 ? initializeApp(firebaseAdminConfig) : apps[0]
+
     auth = getAuth(app)
     adminDb = getFirestore(app)
+  } catch (error) {
+    console.warn("Firebase Admin initialization failed:", error)
   }
-} catch (error) {
-  console.warn("Firebase Admin initialization skipped during build time")
 }
 
 export { auth, adminDb }

@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { Cashfree } from "cashfree-pg"
 import crypto from "crypto"
-import { auth } from "@/lib/firebase-admin"
-import { db } from "@/lib/firebase-admin"
+import { auth, adminDb } from "@/lib/firebase-admin"
 
 // Initialize Cashfree
 Cashfree.XClientId = process.env.CASHFREE_CLIENT_ID || ""
@@ -19,6 +18,11 @@ function generateOrderId() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Firebase is available
+    if (!auth || !adminDb) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
+    }
+
     // Get authorization token
     const authHeader = request.headers.get("authorization")
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -72,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (response && response.data) {
       // Store payment details in Firestore
-      const paymentRef = db.collection("payments").doc(orderId)
+      const paymentRef = adminDb.collection("payments").doc(orderId)
       await paymentRef.set({
         orderId,
         userId,
