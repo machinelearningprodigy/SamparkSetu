@@ -1,108 +1,99 @@
 import { type NextRequest, NextResponse } from "next/server"
-import axios from "axios"
-import { auth, adminDb } from "@/lib/firebase-admin"
-import crypto from "crypto"
-
-// Generate a unique order ID
-function generateOrderId() {
-  const uniqueId = crypto.randomBytes(16).toString("hex")
-  const timestamp = Date.now().toString()
-  return `order_${timestamp}_${uniqueId.substring(0, 8)}`
-}
+import { adminDb } from "@/lib/firebase-admin"
+import { createPaymentOrder } from "@/lib/cashfree"
 
 export async function POST(request: NextRequest) {
   try {
-    // Get authorization token
-    const authHeader = request.headers.get("authorization")
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // Check if Firebase Admin is properly initialized
+    if (!adminDb) {
+      console.error("Firebase Admin not properly initialized")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    const token = authHeader.split("Bearer ")[1]
-    const decodedToken = await auth.verifyIdToken(token)
-    const userId = decodedToken.uid
-
-    // Get request body
     const body = await request.json()
-    const { amount, purpose, recipientEmail, paymentId, itemId, userName, userEmail, userPhone } = body
+    const {
+      amount,
+      currency = "INR",
+      customerId,
+      customerEmail,
+      customerPhone,
+      returnUrl,
+      notifyUrl,
+      itemId,
+      type = "direct",
+    } = body
 
-    if (!amount || !userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+    // Validate required fields
+    if (!amount || !customerId || !customerEmail) {
+      return NextResponse.json({ error: "Missing required fields: amount, customerId, customerEmail" }, { status: 400 })
     }
 
-    // Generate order ID
-    const orderId = generateOrderId()
+    // Validate amount
+    if (typeof amount !== "number" || amount <= 0) {
+      return NextResponse.json({ error: "Amount must be a positive number" }, { status: 400 })
+    }
 
-    // Cashfree credentials
-    const clientId = process.env.CASHFREE_CLIENT_ID || "TEST105109316878a2d6aacd12dbf90f13901501"
-    const clientSecret = process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_test_7e11b8a14fc275e6f6d0bed3f1bbab79_f56775be"
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    // Generate unique order ID
+    const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
-    // Create payment order with Cashfree API
     try {
-      const response = await axios.post(
-        "https://sandbox.cashfree.com/pg/orders",
-        {
-          order_id: orderId,
-          order_amount: Number.parseFloat(amount.toString()),
-          order_currency: "INR",
-          customer_details: {
-            customer_id: userId,
-            customer_name: userName || "User",
-            customer_email: userEmail || "user@example.com",
-            customer_phone: userPhone || "9999999999",
-          },
-          order_meta: {
-            return_url: `${appUrl}/payment/status?order_id={order_id}&item_id=${itemId || ""}&payment_id=${paymentId || ""}`,
-            notify_url: `${appUrl}/api/payment/webhook`,
-          },
-          order_note: purpose || "Payment for lost and found item",
-        },
-        {
-          headers: {
-            "x-client-id": clientId,
-            "x-client-secret": clientSecret,
-            "x-api-version": "2022-09-01",
-            "Content-Type": "application/json",
-          },
-        },
-      )
+      // Create payment order with Cashfree
+      const paymentOrder = await createPaymentOrder({
+        orderId,
+        amount,
+        currency,
+        customerId,
+        customerEmail,
+        customerPhone,
+        returnUrl: returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/payment/status?orderId=${orderId}`,
+        notifyUrl: notifyUrl || `${process.env.NEXT_PUBLIC_APP_URL}/api/payment/webhook`,
+      })
 
-      // Update the payment record with order ID
-      if (paymentId) {
-        await adminDb.collection("payments").doc(paymentId).update({
-          orderId: orderId,
-          cashfreeOrderId: response.data.cf_order_id,
-          paymentLink: response.data.payment_link,
-          updatedAt: new Date(),
-        })
+      if (!paymentOrder.success) {
+        console.error("Cashfree payment order creation failed:", paymentOrder.error)
+        return NextResponse.json({ error: "Failed to create payment order" }, { status: 500 })
       }
 
-      // Generate payment link using the session ID
-      const paymentLink = response.data.payment_link || `https://sandbox.cashfree.com/pg/orders/${orderId}/payments`
+      // Create payment record in Firestore
+      const paymentData = {
+        orderId,
+        amount,
+        currency,
+        customerId,
+        customerEmail,
+        customerPhone: customerPhone || null,
+        status: "pending",
+        type,
+        itemId: itemId || null,
+        paymentSessionId: paymentOrder.data.payment_session_id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
 
-      // Return the payment link and order ID
+      await adminDb.collection("payments").doc(orderId).set(paymentData)
+
       return NextResponse.json({
         success: true,
-        order_id: orderId,
-        payment_link: paymentLink,
-        data: response.data,
-      })
-    } catch (apiError: any) {
-      console.error("Cashfree API error:", apiError.response?.data || apiError.message)
-      return NextResponse.json(
-        {
-          error: apiError.response?.data?.message || apiError.message,
-          details: apiError.response?.data,
+        data: {
+          orderId,
+          paymentSessionId: paymentOrder.data.payment_session_id,
+          paymentUrl: paymentOrder.data.payment_url,
         },
-        { status: 500 },
-      )
+      })
+    } catch (cashfreeError) {
+      console.error("Cashfree API error:", cashfreeError)
+      return NextResponse.json({ error: "Payment service temporarily unavailable" }, { status: 503 })
     }
-  } catch (error: any) {
-    console.error("Error creating payment:", error)
-    return NextResponse.json(
-      { error: error.message || "An error occurred while processing your request" },
-      { status: 500 },
-    )
+  } catch (error) {
+    console.error("Payment creation error:", error)
+
+    // Handle specific Firebase errors
+    if (error instanceof Error) {
+      if (error.message.includes("Firebase Admin")) {
+        return NextResponse.json({ error: "Server configuration error. Please contact support." }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

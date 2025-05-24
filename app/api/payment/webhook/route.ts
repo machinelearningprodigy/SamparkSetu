@@ -1,29 +1,57 @@
-import { auth, adminDb } from "@/lib/firebase-admin"
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server"
+import { adminDb } from "@/lib/firebase-admin"
 
-export async function POST(req: Request) {
-    try {
-        const reqBody = await req.json();
-        const { id, email } = reqBody;
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
 
-        if (!id || !email) {
-            return new NextResponse("Missing ID or Email", { status: 400 });
+    // Cashfree webhook signature verification
+    const signature = request.headers.get("x-webhook-signature")
+    const timestamp = request.headers.get("x-webhook-timestamp")
+
+    // Log the webhook data for debugging
+    console.log("Cashfree webhook received:", body)
+
+    // Extract payment information from Cashfree webhook
+    const { type, data } = body
+
+    if (type === "PAYMENT_SUCCESS_WEBHOOK") {
+      const { order } = data
+      const orderId = order?.order_id
+      const paymentStatus = order?.order_status
+
+      if (orderId && adminDb) {
+        try {
+          // Find and update the payment record
+          const paymentsRef = adminDb.collection("payments")
+          const querySnapshot = await paymentsRef.where("orderId", "==", orderId).get()
+
+          if (!querySnapshot.empty) {
+            const paymentDoc = querySnapshot.docs[0]
+            await paymentDoc.ref.update({
+              status: paymentStatus === "PAID" ? "SUCCESS" : paymentStatus,
+              updatedAt: new Date(),
+              webhookData: data,
+            })
+
+            // If there's an associated item, update its payment status
+            const paymentData = paymentDoc.data()
+            if (paymentData.itemId && paymentStatus === "PAID") {
+              await adminDb.collection("items").doc(paymentData.itemId).update({
+                payment_status: "paid",
+                updated_at: new Date(),
+              })
+            }
+          }
+        } catch (dbError) {
+          console.error("Error updating payment from webhook:", dbError)
         }
-
-        const user = await auth.getUserByEmail(email);
-
-        if (!user) {
-            return new NextResponse("User not found", { status: 404 });
-        }
-
-        await adminDb.collection('customers').doc(user.uid).collection('payments').doc(id).update({
-            status: 'complete',
-        });
-
-        return NextResponse.json({ message: "Payment updated successfully" }, { status: 200 });
-
-    } catch (error) {
-        console.error("Error updating payment:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+      }
     }
+
+    return NextResponse.json({ received: true })
+  } catch (error: any) {
+    console.error("Webhook error:", error)
+    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 })
+  }
 }
