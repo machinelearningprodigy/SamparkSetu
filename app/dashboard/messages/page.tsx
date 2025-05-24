@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import {
   Send,
@@ -141,7 +140,7 @@ export default function MessagesPage() {
 
     fetchUserData()
 
-    // Fetch conversations
+    // Initial fetch
     fetchConversations()
 
     // Set up real-time listener for new messages
@@ -149,36 +148,16 @@ export default function MessagesPage() {
       collection(db, "messages"),
       or(where("receiver_id", "==", user.uid), where("sender_id", "==", user.uid)),
       orderBy("created_at", "desc"),
-      limit(1),
     )
 
     const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+      console.log("Real-time update received, changes:", snapshot.docChanges().length)
+
       snapshot.docChanges().forEach((change) => {
-        if (change.type === "added" || change.type === "modified") {
+        if (change.type === "added") {
+          console.log("New message added:", change.doc.data())
           // Refresh conversations when a new message is received
           fetchConversations()
-
-          // Update messages if in the active conversation
-          const newMessage = { id: change.doc.id, ...change.doc.data() } as Message
-
-          if (
-            activeConversation &&
-            ((newMessage.sender_id === activeConversation.otherUserId && newMessage.receiver_id === user.uid) ||
-              (newMessage.sender_id === user.uid && newMessage.receiver_id === activeConversation.otherUserId))
-          ) {
-            // Mark as read if it's a received message in the active conversation
-            if (newMessage.receiver_id === user.uid && !newMessage.read) {
-              updateDoc(doc(db, "messages", newMessage.id), { read: true })
-            }
-
-            // Add to messages if not already there
-            setMessages((prev) => {
-              if (!prev.some((msg) => msg.id === newMessage.id)) {
-                return [...prev, newMessage].sort((a, b) => a.created_at.seconds - b.created_at.seconds)
-              }
-              return prev
-            })
-          }
         }
       })
     })
@@ -186,7 +165,7 @@ export default function MessagesPage() {
     return () => {
       unsubscribe()
     }
-  }, [user, activeConversation])
+  }, [user])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -285,8 +264,9 @@ export default function MessagesPage() {
 
     try {
       setIsLoading(true)
+      console.log("Fetching conversations for user:", user.uid)
 
-      // Fetch all messages related to this user
+      // Fetch ALL messages where user is either sender or receiver
       const messagesQuery = query(
         collection(db, "messages"),
         or(where("sender_id", "==", user.uid), where("receiver_id", "==", user.uid)),
@@ -294,6 +274,8 @@ export default function MessagesPage() {
       )
 
       const messagesSnapshot = await getDocs(messagesQuery)
+      console.log("Total messages found:", messagesSnapshot.docs.length)
+
       const allMessages = messagesSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -302,7 +284,7 @@ export default function MessagesPage() {
       // Group messages by conversation
       const conversationMap = new Map<string, Conversation>()
 
-      // Count messages by category
+      // Count messages by category for the current user
       let unread = 0
       let archived = 0
       let spam = 0
@@ -310,11 +292,31 @@ export default function MessagesPage() {
       let trash = 0
 
       for (const message of allMessages) {
-        // For each message, determine the conversation it belongs to
+        console.log("Processing message:", {
+          id: message.id,
+          sender: message.sender_id,
+          receiver: message.receiver_id,
+          content: message.content,
+          category: message.category,
+          read: message.read,
+        })
+
         const otherUserId = message.sender_id === user.uid ? message.receiver_id : message.sender_id
         const conversationKey = message.item_id ? `${otherUserId}-${message.item_id}` : `${otherUserId}-direct`
 
+        // Count categories based on user's perspective
+        if (message.receiver_id === user.uid) {
+          if (!message.read) unread++
+          if (message.category === "archived") archived++
+          if (message.category === "spam") spam++
+          if (message.category === "trash") trash++
+          if (message.starred) starred++
+        }
+
+        // Create or update conversation
         if (!conversationMap.has(conversationKey)) {
+          console.log("Creating new conversation:", conversationKey)
+
           // Fetch other user profile
           const otherUserRef = doc(db, "profiles", otherUserId)
           const otherUserSnapshot = await getDoc(otherUserRef)
@@ -335,7 +337,7 @@ export default function MessagesPage() {
             lastMessage: message,
             otherUser: otherUserData,
             item: itemData,
-            unreadCount: 0,
+            unreadCount: message.receiver_id === user.uid && !message.read ? 1 : 0,
           })
         } else {
           // Update last message if this one is newer
@@ -346,21 +348,15 @@ export default function MessagesPage() {
           ) {
             existing.lastMessage = message
           }
-        }
 
-        // Count unread messages
-        if (message.receiver_id === user.uid && !message.read) {
-          const conversation = conversationMap.get(conversationKey)!
-          conversation.unreadCount = (conversation.unreadCount || 0) + 1
-          unread++
+          // Update unread count
+          if (message.receiver_id === user.uid && !message.read) {
+            existing.unreadCount = (existing.unreadCount || 0) + 1
+          }
         }
-
-        // Count messages by category
-        if (message.category === "archived") archived++
-        if (message.category === "spam") spam++
-        if (message.category === "trash") trash++
-        if (message.starred) starred++
       }
+
+      console.log("Conversations created:", conversationMap.size)
 
       // Update counts
       setUnreadCount(unread)
@@ -376,6 +372,7 @@ export default function MessagesPage() {
         return b.lastMessage.created_at.seconds - a.lastMessage.created_at.seconds
       })
 
+      console.log("Final conversation list:", conversationList.length)
       setConversations(conversationList)
 
       // Update active conversation or select first one
@@ -409,7 +406,9 @@ export default function MessagesPage() {
       setPage(1)
       setHasMore(true)
 
-      // Build the query
+      console.log("Fetching messages between:", user.uid, "and", otherUserId, "for item:", itemId)
+
+      // Build the query to get messages between these two users
       let messagesQuery
 
       if (itemId) {
@@ -430,16 +429,8 @@ export default function MessagesPage() {
           collection(db, "messages"),
           and(
             or(
-              and(
-                where("sender_id", "==", user.uid),
-                where("receiver_id", "==", otherUserId),
-                where("item_id", "==", null),
-              ),
-              and(
-                where("sender_id", "==", otherUserId),
-                where("receiver_id", "==", user.uid),
-                where("item_id", "==", null),
-              ),
+              and(where("sender_id", "==", user.uid), where("receiver_id", "==", otherUserId)),
+              and(where("sender_id", "==", otherUserId), where("receiver_id", "==", user.uid)),
             ),
           ),
           orderBy("created_at", "desc"),
@@ -448,6 +439,7 @@ export default function MessagesPage() {
       }
 
       const messagesSnapshot = await getDocs(messagesQuery)
+      console.log("Messages found:", messagesSnapshot.docs.length)
 
       if (messagesSnapshot.empty) {
         setMessages([])
@@ -528,16 +520,8 @@ export default function MessagesPage() {
           collection(db, "messages"),
           and(
             or(
-              and(
-                where("sender_id", "==", user.uid),
-                where("receiver_id", "==", activeConversation.otherUserId),
-                where("item_id", "==", null),
-              ),
-              and(
-                where("sender_id", "==", activeConversation.otherUserId),
-                where("receiver_id", "==", user.uid),
-                where("item_id", "==", null),
-              ),
+              and(where("sender_id", "==", user.uid), where("receiver_id", "==", activeConversation.otherUserId)),
+              and(where("sender_id", "==", activeConversation.otherUserId), where("receiver_id", "==", user.uid)),
             ),
           ),
           orderBy("created_at", "desc"),
@@ -634,6 +618,9 @@ export default function MessagesPage() {
         uploadedImageUrls = await uploadMessageImages()
       }
 
+      console.log("Sending message from", user.uid, "to", activeConversation.otherUserId)
+
+      // Create a single message document
       const messageData = {
         sender_id: user.uid,
         receiver_id: activeConversation.otherUserId,
@@ -642,11 +629,12 @@ export default function MessagesPage() {
         read: false,
         created_at: serverTimestamp(),
         images: uploadedImageUrls,
-        category: "inbox", // For the receiver
+        category: "inbox", // Default category for receiver
         starred: false,
       }
 
       const docRef = await addDoc(collection(db, "messages"), messageData)
+      console.log("Message sent with ID:", docRef.id)
 
       // Clear input and images
       setNewMessage("")
@@ -658,16 +646,19 @@ export default function MessagesPage() {
         id: docRef.id,
         ...messageData,
         created_at: Timestamp.now(),
-        category: "sent", // For the sender's view
-        starred: false,
       }
 
       setMessages((prev) => [...prev, optimisticMessage])
 
-      // Update the sender's view of this message to be in "sent" category
-      await updateDoc(doc(db, "messages", docRef.id), {
-        category: "sent",
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully",
       })
+
+      // Refresh conversations to update the list
+      setTimeout(() => {
+        fetchConversations()
+      }, 500)
     } catch (error) {
       console.error("Error sending message:", error)
       toast({
@@ -681,7 +672,7 @@ export default function MessagesPage() {
   }
 
   const handleMessageAction = async (messageId: string, action: string) => {
-    if (!messageId) return
+    if (!messageId || !user) return
 
     try {
       const messageRef = doc(db, "messages", messageId)
@@ -707,7 +698,13 @@ export default function MessagesPage() {
           break
         case "delete":
           await deleteDoc(messageRef)
-          break
+          setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+          fetchConversations()
+          toast({
+            title: "Success",
+            description: "Message deleted successfully",
+          })
+          return
         case "star":
           await updateDoc(messageRef, { starred: true })
           break
@@ -715,29 +712,27 @@ export default function MessagesPage() {
           await updateDoc(messageRef, { starred: false })
           break
         default:
-          break
+          return
       }
 
-      // Update messages list
-      if (action === "delete") {
-        setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
-      } else {
-        setMessages((prev) =>
-          prev.map((msg) => {
-            if (msg.id === messageId) {
-              if (action === "star") return { ...msg, starred: true }
-              if (action === "unstar") return { ...msg, starred: false }
-              if (["archive", "spam", "trash"].includes(action)) {
-                return { ...msg, category: action === "archive" ? "archived" : action === "spam" ? "spam" : "trash" }
-              }
-              if (["unarchive", "notspam", "restore"].includes(action)) {
-                return { ...msg, category: "inbox" }
-              }
+      // Update local state
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            const updates: any = {}
+            if (action === "star") updates.starred = true
+            if (action === "unstar") updates.starred = false
+            if (["archive", "spam", "trash"].includes(action)) {
+              updates.category = action === "archive" ? "archived" : action === "spam" ? "spam" : "trash"
             }
-            return msg
-          }),
-        )
-      }
+            if (["unarchive", "notspam", "restore"].includes(action)) {
+              updates.category = "inbox"
+            }
+            return { ...msg, ...updates }
+          }
+          return msg
+        }),
+      )
 
       // Refresh conversations
       fetchConversations()
@@ -762,9 +757,8 @@ export default function MessagesPage() {
   }
 
   const filterConversations = () => {
-    if (!conversations) return []
+    if (!conversations || !user) return []
 
-    // Filter by search query
     let filtered = conversations
     if (searchQuery) {
       filtered = filtered.filter(
@@ -776,30 +770,55 @@ export default function MessagesPage() {
       )
     }
 
-    // Filter by tab
+    console.log("Filtering conversations for tab:", activeTab, "Total conversations:", filtered.length)
+
+    // Filter by tab - simplified logic
     switch (activeTab) {
       case "inbox":
-        return filtered.filter(
-          (conv) =>
-            !conv.lastMessage?.category ||
-            conv.lastMessage?.category === "inbox" ||
-            (conv.lastMessage?.receiver_id === user?.uid &&
-              !["archived", "spam", "trash"].includes(conv.lastMessage?.category || "")),
-        )
+        // Show conversations where user received messages (regardless of category for now)
+        const inboxConversations = filtered.filter((conv) => {
+          const msg = conv.lastMessage
+          if (!msg) return false
+
+          // Show if user is receiver OR if user is sender but there are received messages in this conversation
+          return msg.receiver_id === user.uid || msg.sender_id === user.uid
+        })
+        console.log("Inbox conversations:", inboxConversations.length)
+        return inboxConversations
+
       case "sent":
-        return filtered.filter(
-          (conv) =>
-            conv.lastMessage?.sender_id === user?.uid &&
-            !["archived", "spam", "trash"].includes(conv.lastMessage?.category || ""),
-        )
+        // Show conversations where user sent the last message
+        const sentConversations = filtered.filter((conv) => {
+          const msg = conv.lastMessage
+          return msg && msg.sender_id === user.uid
+        })
+        console.log("Sent conversations:", sentConversations.length)
+        return sentConversations
+
       case "archived":
-        return filtered.filter((conv) => conv.lastMessage?.category === "archived")
+        return filtered.filter((conv) => {
+          const msg = conv.lastMessage
+          return msg && msg.category === "archived"
+        })
+
       case "spam":
-        return filtered.filter((conv) => conv.lastMessage?.category === "spam")
+        return filtered.filter((conv) => {
+          const msg = conv.lastMessage
+          return msg && msg.category === "spam"
+        })
+
       case "trash":
-        return filtered.filter((conv) => conv.lastMessage?.category === "trash")
+        return filtered.filter((conv) => {
+          const msg = conv.lastMessage
+          return msg && msg.category === "trash"
+        })
+
       case "starred":
-        return filtered.filter((conv) => conv.lastMessage?.starred)
+        return filtered.filter((conv) => {
+          const msg = conv.lastMessage
+          return msg && msg.starred
+        })
+
       default:
         return filtered
     }
@@ -824,14 +843,17 @@ export default function MessagesPage() {
   }
 
   const getMessageCategory = (message: Message) => {
+    if (!user) return "Unknown"
+
     if (message.category === "archived") return "Archived"
     if (message.category === "spam") return "Spam"
     if (message.category === "trash") return "Trash"
-    if (message.sender_id === user?.uid) return "Sent"
+    if (message.sender_id === user.uid) return "Sent"
     return "Inbox"
   }
 
   const handleTabChange = (tab: string) => {
+    console.log("Changing tab to:", tab)
     setActiveTab(tab)
   }
 
@@ -852,37 +874,20 @@ export default function MessagesPage() {
       </div>
 
       <div className="flex-1 flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-slate-800">
+        {/* Mobile header only */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-blue-400" />
             <h1 className="text-xl font-bold">Messages</h1>
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative md:hidden">
-              <Tabs defaultValue="inbox" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="inbox" className="text-xs">
-                    Inbox
-                  </TabsTrigger>
-                  <TabsTrigger value="sent" className="text-xs">
-                    Sent
-                  </TabsTrigger>
-                  <TabsTrigger value="starred" className="text-xs">
-                    Starred
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input
-                placeholder="Search messages..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 w-[200px] bg-slate-900/50 border-slate-800"
-              />
-            </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Input
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 w-[150px] bg-slate-900/50 border-slate-800"
+            />
           </div>
         </div>
 
@@ -946,15 +951,8 @@ export default function MessagesPage() {
                                   conversation.unreadCount > 0 ? "text-white font-medium" : "text-slate-500"
                                 } truncate mt-1 flex items-center`}
                               >
-                                {conversation.lastMessage?.category === "sent" ||
-                                conversation.lastMessage?.sender_id === user?.uid ? (
+                                {conversation.lastMessage?.sender_id === user?.uid ? (
                                   <MailPlus className="h-3 w-3 mr-1 text-slate-400" />
-                                ) : conversation.lastMessage?.category === "archived" ? (
-                                  <ArchiveIcon className="h-3 w-3 mr-1 text-slate-400" />
-                                ) : conversation.lastMessage?.category === "spam" ? (
-                                  <CircleAlert className="h-3 w-3 mr-1 text-slate-400" />
-                                ) : conversation.lastMessage?.category === "trash" ? (
-                                  <Trash className="h-3 w-3 mr-1 text-slate-400" />
                                 ) : (
                                   <Mail className="h-3 w-3 mr-1 text-slate-400" />
                                 )}
@@ -1208,68 +1206,37 @@ export default function MessagesPage() {
                                     </DropdownMenuItem>
                                   )}
 
-                                  {message.category !== "archived" ? (
-                                    <DropdownMenuItem
-                                      onClick={() => handleMessageAction(message.id, "archive")}
-                                      className="flex items-center"
-                                    >
-                                      <ArchiveIcon className="h-4 w-4 mr-2" />
-                                      <span>Archive</span>
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem
-                                      onClick={() => handleMessageAction(message.id, "unarchive")}
-                                      className="flex items-center"
-                                    >
-                                      <Mail className="h-4 w-4 mr-2" />
-                                      <span>Move to Inbox</span>
-                                    </DropdownMenuItem>
-                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => handleMessageAction(message.id, "archive")}
+                                    className="flex items-center"
+                                  >
+                                    <ArchiveIcon className="h-4 w-4 mr-2" />
+                                    <span>Archive</span>
+                                  </DropdownMenuItem>
 
-                                  {message.category !== "spam" ? (
-                                    <DropdownMenuItem
-                                      onClick={() => handleMessageAction(message.id, "spam")}
-                                      className="flex items-center"
-                                    >
-                                      <CircleAlert className="h-4 w-4 mr-2" />
-                                      <span>Mark as Spam</span>
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem
-                                      onClick={() => handleMessageAction(message.id, "notspam")}
-                                      className="flex items-center"
-                                    >
-                                      <Mail className="h-4 w-4 mr-2" />
-                                      <span>Not Spam</span>
-                                    </DropdownMenuItem>
-                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => handleMessageAction(message.id, "spam")}
+                                    className="flex items-center"
+                                  >
+                                    <CircleAlert className="h-4 w-4 mr-2" />
+                                    <span>Mark as Spam</span>
+                                  </DropdownMenuItem>
 
-                                  {message.category !== "trash" ? (
-                                    <DropdownMenuItem
-                                      onClick={() => handleMessageAction(message.id, "trash")}
-                                      className="flex items-center"
-                                    >
-                                      <Trash className="h-4 w-4 mr-2" />
-                                      <span>Move to Trash</span>
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <>
-                                      <DropdownMenuItem
-                                        onClick={() => handleMessageAction(message.id, "restore")}
-                                        className="flex items-center"
-                                      >
-                                        <Mail className="h-4 w-4 mr-2" />
-                                        <span>Restore</span>
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => handleMessageAction(message.id, "delete")}
-                                        className="text-red-500 hover:text-red-600 flex items-center"
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        <span>Delete Forever</span>
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => handleMessageAction(message.id, "trash")}
+                                    className="flex items-center"
+                                  >
+                                    <Trash className="h-4 w-4 mr-2" />
+                                    <span>Move to Trash</span>
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem
+                                    onClick={() => handleMessageAction(message.id, "delete")}
+                                    className="text-red-500 hover:text-red-600 flex items-center"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    <span>Delete Forever</span>
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </motion.div>

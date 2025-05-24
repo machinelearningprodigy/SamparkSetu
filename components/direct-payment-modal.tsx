@@ -17,6 +17,8 @@ import { calculatePlatformFee, calculateTotalAmount } from "@/lib/payment-utils"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { CreditCard, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { db } from "@/lib/firebase"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 
 interface DirectPaymentModalProps {
   isOpen: boolean
@@ -31,6 +33,7 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [paymentUrl, setPaymentUrl] = useState<string>("")
   const [paymentStatus, setPaymentStatus] = useState<string>("")
+  const [orderId, setOrderId] = useState<string>("")
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -59,19 +62,41 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
     try {
       setIsLoading(true)
 
+      // Create payment record in Firestore first
+      const paymentData = {
+        amount: totalAmount,
+        baseAmount: amount,
+        platformFee: platformFee,
+        purpose,
+        recipientEmail,
+        userId: user.uid,
+        userName: user.displayName || "",
+        userEmail: user.email || "",
+        userPhone: user.phoneNumber || "",
+        status: "PENDING",
+        type: "direct",
+        createdAt: serverTimestamp(),
+      }
+
+      // Add to Firestore
+      const paymentRef = await addDoc(collection(db, "payments"), paymentData)
+
+      // Now create the payment with Cashfree
       const response = await fetch("/api/payment/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${await user.getIdToken()}`,
         },
         body: JSON.stringify({
           amount: totalAmount,
           purpose,
           recipientEmail,
+          paymentId: paymentRef.id,
           userId: user.uid,
           userName: user.displayName || "",
           userEmail: user.email || "",
-          userPhone: user.phoneNumber || "9999999999",
+          userPhone: user.phoneNumber || "",
         }),
       })
 
@@ -81,47 +106,35 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
         throw new Error(data.error || "Failed to create payment")
       }
 
-      console.log("Payment response:", data)
+      // Update the payment record with order ID
+      await fetch("/api/payment/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: user ? `Bearer ${await user.getIdToken()}` : "",
+        },
+        body: JSON.stringify({
+          paymentId: paymentRef.id,
+          orderId: data.order_id,
+          paymentLink: data.payment_link,
+        }),
+      })
 
-      // Get the correct payment URL from the response
-      let paymentPageUrl = ""
-      if (data.data && data.data.payments && data.data.payments.url) {
-        // Use the payments URL from the response
-        paymentPageUrl = data.data.payments.url
-      } else if (data.payment_link) {
-        // Fallback to payment_link if available
-        paymentPageUrl = data.payment_link
-      } else if (data.data && data.data.payment_session_id) {
-        // Construct URL from session ID if needed
-        paymentPageUrl = `https://sandbox.cashfree.com/pg/orders/${data.data.order_id}/payments`
-      }
+      // Store the order ID for polling
+      setOrderId(data.order_id)
 
-      if (paymentPageUrl) {
-        setPaymentUrl(paymentPageUrl)
+      // Get the payment URL
+      if (data.payment_link) {
+        setPaymentUrl(data.payment_link)
+        window.open(data.payment_link, "_blank")
 
-        // Open the payment window with a slight delay to ensure state is updated
-        setTimeout(() => {
-          const paymentWindow = window.open(paymentPageUrl, "_blank")
-
-          // If window was blocked, show a message
-          if (!paymentWindow) {
-            toast({
-              title: "Popup Blocked",
-              description:
-                "Please allow popups and click 'Proceed to Payment' again, or use the 'Open Payment Window' button.",
-              variant: "destructive",
-            })
-            setIsLoading(false)
-            setPaymentStatus("ready")
-          } else {
-            // Start polling for payment status
-            pollPaymentStatus(data.order_id || data.data.order_id)
-          }
-        }, 500)
+        // Start polling for payment status
+        pollPaymentStatus(data.order_id)
       } else {
-        throw new Error("No payment URL found in response")
+        throw new Error("No payment link received")
       }
     } catch (error: any) {
+      console.error("Payment error:", error)
       toast({
         title: "Payment Error",
         description: error.message || "Failed to process payment",
@@ -153,6 +166,7 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: user ? `Bearer ${await user.getIdToken()}` : "",
             },
             body: JSON.stringify({
               orderId,
@@ -194,8 +208,24 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
     }
   }
 
+  const resetForm = () => {
+    setAmount(100)
+    setPurpose("")
+    setRecipientEmail("")
+    setPaymentStatus("")
+    setPaymentUrl("")
+    setOrderId("")
+  }
+
+  const handleClose = () => {
+    if (!isLoading) {
+      resetForm()
+      onClose()
+    }
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800">
         <DialogHeader>
           <DialogTitle className="text-xl">Make a Payment</DialogTitle>
@@ -209,7 +239,7 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
             </div>
             <h3 className="text-xl font-semibold mb-2">Payment Successful!</h3>
             <p className="text-slate-400 text-center mb-4">Your payment has been processed successfully.</p>
-            <Button onClick={onClose} className="w-full">
+            <Button onClick={handleClose} className="w-full">
               Continue
             </Button>
           </div>
@@ -240,7 +270,7 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
                 Open Payment Window
               </Button>
             )}
-            <Button onClick={onClose} variant="ghost" className="w-full">
+            <Button onClick={handleClose} variant="ghost" className="w-full">
               Cancel
             </Button>
           </div>
@@ -307,7 +337,7 @@ export function DirectPaymentModal({ isOpen, onClose, onPaymentComplete }: Direc
             </div>
 
             <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={onClose} className="sm:w-auto w-full">
+              <Button variant="outline" onClick={handleClose} className="sm:w-auto w-full">
                 Cancel
               </Button>
               <Button

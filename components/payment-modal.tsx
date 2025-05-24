@@ -12,10 +12,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { calculatePlatformFee, calculateTotalAmount } from "@/lib/cashfree"
+import { calculatePlatformFee, calculateTotalAmount } from "@/lib/payment-utils"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/contexts/auth-context"
 import { CreditCard, AlertCircle, CheckCircle, Loader2 } from "lucide-react"
+import { db } from "@/lib/firebase"
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from "firebase/firestore"
 
 interface PaymentModalProps {
   isOpen: boolean
@@ -44,6 +46,7 @@ export function PaymentModal({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [paymentUrl, setPaymentUrl] = useState<string>("")
   const [paymentStatus, setPaymentStatus] = useState<string>("")
+  const [orderId, setOrderId] = useState<string>("")
   const { toast } = useToast()
   const { user } = useAuth()
 
@@ -63,6 +66,30 @@ export function PaymentModal({
     try {
       setIsLoading(true)
 
+      // Create payment record in Firestore first
+      const paymentData = {
+        amount: totalAmount,
+        baseAmount: amount,
+        platformFee: platformFee,
+        itemId,
+        itemName,
+        recipientId,
+        recipientName: recipientDetails.name,
+        recipientEmail: recipientDetails.email,
+        recipientPhone: recipientDetails.phone,
+        userId: user.uid,
+        userName: user.displayName || "",
+        userEmail: user.email || "",
+        userPhone: user.phoneNumber || "",
+        status: "PENDING",
+        type: "item",
+        createdAt: serverTimestamp(),
+      }
+
+      // Add to Firestore
+      const paymentRef = await addDoc(collection(db, "payments"), paymentData)
+
+      // Now create the payment with Cashfree
       const response = await fetch("/api/payment/create", {
         method: "POST",
         headers: {
@@ -71,9 +98,14 @@ export function PaymentModal({
         },
         body: JSON.stringify({
           amount: totalAmount,
+          purpose: `Payment for ${itemName}`,
+          recipientEmail: recipientDetails.email,
+          paymentId: paymentRef.id,
           itemId,
-          recipientId,
-          recipientDetails,
+          userId: user.uid,
+          userName: user.displayName || "",
+          userEmail: user.email || "",
+          userPhone: user.phoneNumber || "",
         }),
       })
 
@@ -83,17 +115,27 @@ export function PaymentModal({
         throw new Error(data.error || "Failed to create payment")
       }
 
-      // Open Cashfree payment page
+      // Update the payment record with order ID
+      await updateDoc(doc(db, "payments", paymentRef.id), {
+        orderId: data.order_id,
+        paymentLink: data.payment_link,
+      })
+
+      // Store the order ID for polling
+      setOrderId(data.order_id)
+
+      // Get the payment URL
       if (data.payment_link) {
         setPaymentUrl(data.payment_link)
         window.open(data.payment_link, "_blank")
 
         // Start polling for payment status
-        pollPaymentStatus(data.order_id)
+        pollPaymentStatus(data.order_id, paymentRef.id)
       } else {
         throw new Error("No payment link received")
       }
     } catch (error: any) {
+      console.error("Payment error:", error)
       toast({
         title: "Payment Error",
         description: error.message || "Failed to process payment",
@@ -103,7 +145,7 @@ export function PaymentModal({
     }
   }
 
-  const pollPaymentStatus = async (orderId: string) => {
+  const pollPaymentStatus = async (orderId: string, paymentId: string) => {
     try {
       setPaymentStatus("pending")
 
@@ -125,25 +167,43 @@ export function PaymentModal({
             method: "POST",
             headers: {
               "Content-Type": "application/json",
+              Authorization: user ? `Bearer ${await user.getIdToken()}` : "",
             },
             body: JSON.stringify({
               orderId,
               itemId,
+              paymentId,
             }),
           })
 
           const data = await response.json()
 
-          if (response.ok && data && data.length > 0) {
-            if (data[0].payment_status === "SUCCESS") {
-              setPaymentStatus("success")
-              setIsLoading(false)
-              onPaymentComplete()
-              return
-            } else if (data[0].payment_status === "FAILED") {
-              setPaymentStatus("failed")
-              setIsLoading(false)
-              return
+          if (response.ok && data.success) {
+            const paymentData = data.data
+            if (paymentData && paymentData.length > 0) {
+              if (paymentData[0].payment_status === "SUCCESS") {
+                // Update item status
+                await fetch("/api/items/update-payment-status", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${await user.getIdToken()}`,
+                  },
+                  body: JSON.stringify({
+                    itemId,
+                    status: "paid",
+                  }),
+                })
+
+                setPaymentStatus("success")
+                setIsLoading(false)
+                onPaymentComplete()
+                return
+              } else if (paymentData[0].payment_status === "FAILED") {
+                setPaymentStatus("failed")
+                setIsLoading(false)
+                return
+              }
             }
           }
 
@@ -164,8 +224,22 @@ export function PaymentModal({
     }
   }
 
+  const resetForm = () => {
+    setAmount(100)
+    setPaymentStatus("")
+    setPaymentUrl("")
+    setOrderId("")
+  }
+
+  const handleClose = () => {
+    if (!isLoading) {
+      resetForm()
+      onClose()
+    }
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800">
         <DialogHeader>
           <DialogTitle className="text-xl">Secure Payment</DialogTitle>
@@ -181,7 +255,7 @@ export function PaymentModal({
             <p className="text-slate-400 text-center mb-4">
               Your payment has been processed successfully. You can now proceed with the item exchange.
             </p>
-            <Button onClick={onClose} className="w-full">
+            <Button onClick={handleClose} className="w-full">
               Continue
             </Button>
           </div>
@@ -212,7 +286,7 @@ export function PaymentModal({
                 Reopen Payment Window
               </Button>
             )}
-            <Button onClick={onClose} variant="ghost" className="w-full">
+            <Button onClick={handleClose} variant="ghost" className="w-full">
               Cancel
             </Button>
           </div>
@@ -256,7 +330,7 @@ export function PaymentModal({
             </div>
 
             <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={onClose} className="sm:w-auto w-full">
+              <Button variant="outline" onClick={handleClose} className="sm:w-auto w-full">
                 Cancel
               </Button>
               <Button

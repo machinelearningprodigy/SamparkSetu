@@ -14,3 +14,5 @@ https://v0.dev/chat/fork-of-fork-of-stable-04-DAk0CPeNHFP : ALL UI/UX Chnage are
 There are 2 updates
 Login fixed : https://v0.dev/chat/login-issue-fix-VtMEeQw858g (use this if everything other goes well)
 STABLE ONE (With UI of pay) : https://v0.dev/chat/fork-of-mock-of-payment-data-wy5GtcpxPbr
+
+Message fixed : https://v0.dev/chat/fork-of-login-issue-fix-cAp4PhO51bP

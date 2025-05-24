@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,102 +15,146 @@ import {
   Clock,
   Eye,
   FileText,
-  Filter,
   Search,
+  Loader2,
 } from "lucide-react"
 import { format } from "date-fns"
 import { DirectPaymentModal } from "@/components/direct-payment-modal"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { db } from "@/lib/firebase"
+import { collection, query, where, orderBy, getDocs } from "firebase/firestore"
+import { useToast } from "@/components/ui/use-toast"
 
-// Mock data for transactions
-const mockTransactions = [
-  {
-    id: "tx_1234567890",
-    createdAt: new Date(2023, 4, 15),
-    itemName: "iPhone 13 Pro",
-    amount: 1100.0,
-    type: "sent",
-    status: "SUCCESS",
-    orderId: "order_123456789",
-    recipient: "Akash Sharma",
-    description: "Payment for found iPhone 13 Pro",
-  },
-  {
-    id: "tx_2345678901",
-    createdAt: new Date(2023, 4, 10),
-    itemName: "MacBook Air M1",
-    amount: 2500.0,
-    type: "received",
-    status: "SUCCESS",
-    orderId: "order_234567890",
-    recipient: "Priya Patel",
-    description: "Payment received for MacBook Air",
-  },
-  {
-    id: "tx_3456789012",
-    createdAt: new Date(2023, 4, 5),
-    itemName: "Sony WH-1000XM4",
-    amount: 350.0,
-    type: "sent",
-    status: "PENDING",
-    orderId: "order_345678901",
-    recipient: "Vikram Singh",
-    description: "Payment for found headphones",
-  },
-  {
-    id: "tx_4567890123",
-    createdAt: new Date(2023, 3, 28),
-    itemName: "Apple Watch Series 7",
-    amount: 450.0,
-    type: "sent",
-    status: "FAILED",
-    orderId: "order_456789012",
-    recipient: "Neha Gupta",
-    description: "Payment attempt for Apple Watch",
-  },
-  {
-    id: "tx_5678901234",
-    createdAt: new Date(2023, 3, 20),
-    itemName: "iPad Pro 11-inch",
-    amount: 900.0,
-    type: "received",
-    status: "SUCCESS",
-    orderId: "order_567890123",
-    recipient: "Rahul Verma",
-    description: "Payment received for iPad Pro",
-  },
-  {
-    id: "tx_6789012345",
-    createdAt: new Date(2023, 3, 15),
-    itemName: "Samsung Galaxy S22",
-    amount: 800.0,
-    type: "sent",
-    status: "SUCCESS",
-    orderId: "order_678901234",
-    recipient: "Ananya Desai",
-    description: "Payment for found Samsung phone",
-  },
-]
+// Define transaction type
+interface Transaction {
+  id: string
+  createdAt: Date
+  itemName?: string
+  amount: number
+  type: "sent" | "received"
+  status: string
+  orderId: string
+  recipient: string
+  description?: string
+  paymentMethod?: string
+  recipientEmail?: string
+  userId?: string
+}
 
 export default function PaymentsPage() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
-  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false)
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [sortOrder, setSortOrder] = useState("newest")
 
-  const filteredTransactions = mockTransactions.filter((transaction) => {
+  useEffect(() => {
+    if (!user) return
+
+    const fetchTransactions = async () => {
+      try {
+        setIsLoading(true)
+
+        // Query for payments where the user is either the sender or recipient
+        const sentQuery = query(
+          collection(db, "payments"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+        )
+
+        const receivedQuery = query(
+          collection(db, "payments"),
+          where("recipientId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+        )
+
+        const [sentSnapshot, receivedSnapshot] = await Promise.all([getDocs(sentQuery), getDocs(receivedQuery)])
+
+        const sentTransactions = sentSnapshot.docs.map((doc) => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            itemName: data.itemName || "Payment",
+            amount: Number.parseFloat(data.amount) || 0,
+            type: "sent",
+            status: data.status || "PENDING",
+            orderId: data.orderId || "",
+            recipient: data.recipientName || data.recipientEmail || "Recipient",
+            description: data.purpose || data.description || "",
+            paymentMethod: data.paymentMethod || "Online",
+            recipientEmail: data.recipientEmail || "",
+          } as Transaction
+        })
+
+        const receivedTransactions = receivedSnapshot.docs.map((doc) => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            createdAt: data.createdAt?.toDate() || new Date(),
+            itemName: data.itemName || "Payment",
+            amount: Number.parseFloat(data.amount) || 0,
+            type: "received",
+            status: data.status || "PENDING",
+            orderId: data.orderId || "",
+            recipient: data.userName || data.userEmail || "Sender",
+            description: data.purpose || data.description || "",
+            paymentMethod: data.paymentMethod || "Online",
+          } as Transaction
+        })
+
+        // Combine and sort transactions
+        const allTransactions = [...sentTransactions, ...receivedTransactions]
+
+        // Sort based on selected order
+        if (sortOrder === "newest") {
+          allTransactions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        } else if (sortOrder === "oldest") {
+          allTransactions.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+        } else if (sortOrder === "highest") {
+          allTransactions.sort((a, b) => b.amount - a.amount)
+        } else if (sortOrder === "lowest") {
+          allTransactions.sort((a, b) => a.amount - b.amount)
+        }
+
+        setTransactions(allTransactions)
+      } catch (error) {
+        console.error("Error fetching transactions:", error)
+        toast({
+          title: "Error",
+          description: "Failed to load transaction history",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [user, toast, sortOrder])
+
+  const handleSortChange = (value: string) => {
+    setSortOrder(value)
+  }
+
+  const filteredTransactions = transactions.filter((transaction) => {
     if (activeTab === "sent" && transaction.type !== "sent") return false
     if (activeTab === "received" && transaction.type !== "received") return false
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       return (
-        transaction.itemName.toLowerCase().includes(query) ||
+        transaction.itemName?.toLowerCase().includes(query) ||
+        false ||
         transaction.recipient.toLowerCase().includes(query) ||
-        transaction.orderId.toLowerCase().includes(query)
+        transaction.orderId.toLowerCase().includes(query) ||
+        transaction.description?.toLowerCase().includes(query) ||
+        false
       )
     }
 
@@ -142,6 +186,42 @@ export default function PaymentsPage() {
     }
   }
 
+  const handlePaymentComplete = () => {
+    // Refresh the transaction list
+    if (user) {
+      setIsLoading(true)
+      // The useEffect will handle the refresh when isLoading changes
+    }
+  }
+
+  const downloadTransactionReceipt = (transaction: Transaction) => {
+    // Create a receipt-like text
+    const receiptContent = `
+TRANSACTION RECEIPT
+-------------------
+Transaction ID: ${transaction.id}
+Order ID: ${transaction.orderId}
+Date: ${format(transaction.createdAt, "MMM dd, yyyy HH:mm:ss")}
+Type: ${transaction.type === "sent" ? "Payment Sent" : "Payment Received"}
+Amount: ₹${transaction.amount.toFixed(2)}
+Status: ${transaction.status}
+${transaction.type === "sent" ? "Recipient" : "From"}: ${transaction.recipient}
+${transaction.description ? `Description: ${transaction.description}` : ""}
+Payment Method: ${transaction.paymentMethod || "Online"}
+    `
+
+    // Create a blob and download
+    const blob = new Blob([receiptContent], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `receipt-${transaction.orderId}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
@@ -150,10 +230,47 @@ export default function PaymentsPage() {
           <p className="text-muted-foreground mt-1">Manage your payment history and transactions</p>
         </div>
         <div className="flex gap-2 mt-4 md:mt-0">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" /> Filter
+          <Button variant="outline" onClick={() => setIsPaymentModalOpen(true)}>
+            <CreditCard className="mr-2 h-4 w-4" /> Make Payment
           </Button>
-          <Button>
+          <Button
+            onClick={() => {
+              // Export all transactions as CSV
+              if (transactions.length === 0) {
+                toast({
+                  title: "No Data",
+                  description: "There are no transactions to export",
+                })
+                return
+              }
+
+              const headers = ["Date", "Type", "Amount", "Status", "Recipient", "Description", "Order ID"]
+              const csvContent = [
+                headers.join(","),
+                ...transactions.map((t) =>
+                  [
+                    format(t.createdAt, "yyyy-MM-dd"),
+                    t.type,
+                    t.amount.toFixed(2),
+                    t.status,
+                    `"${t.recipient.replace(/"/g, '""')}"`,
+                    `"${(t.description || "").replace(/"/g, '""')}"`,
+                    t.orderId,
+                  ].join(","),
+                ),
+              ].join("\n")
+
+              const blob = new Blob([csvContent], { type: "text/csv" })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a")
+              a.href = url
+              a.download = "payment-history.csv"
+              document.body.appendChild(a)
+              a.click()
+              document.body.removeChild(a)
+              URL.revokeObjectURL(url)
+            }}
+          >
             <Download className="mr-2 h-4 w-4" /> Export History
           </Button>
         </div>
@@ -176,7 +293,7 @@ export default function PaymentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select defaultValue="newest">
+          <Select defaultValue={sortOrder} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -196,7 +313,11 @@ export default function PaymentsPage() {
               <CardDescription>View all your payment transactions for item exchanges</CardDescription>
             </CardHeader>
             <CardContent>
-              {filteredTransactions.length > 0 ? (
+              {isLoading ? (
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredTransactions.length > 0 ? (
                 <div className="rounded-md border">
                   <div className="relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm">
@@ -233,7 +354,7 @@ export default function PaymentsPage() {
                           >
                             <td className="p-4 align-middle">{format(transaction.createdAt, "MMM dd, yyyy")}</td>
                             <td className="p-4 align-middle font-medium">
-                              <div className="font-medium">{transaction.itemName}</div>
+                              <div className="font-medium">{transaction.itemName || "Payment"}</div>
                               <div className="text-sm text-slate-500">{transaction.recipient}</div>
                             </td>
                             <td className="p-4 align-middle">₹{transaction.amount.toFixed(2)}</td>
@@ -254,7 +375,12 @@ export default function PaymentsPage() {
                                   <span className="sr-only">View details</span>
                                   <Eye className="h-4 w-4" />
                                 </Button>
-                                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => downloadTransactionReceipt(transaction)}
+                                >
                                   <span className="sr-only">Download receipt</span>
                                   <FileText className="h-4 w-4" />
                                 </Button>
@@ -270,7 +396,9 @@ export default function PaymentsPage() {
                 <div className="text-center py-10 border rounded-md bg-slate-50 dark:bg-slate-800">
                   <CreditCard className="h-10 w-10 mx-auto text-slate-400 mb-3" />
                   <h3 className="text-lg font-medium mb-1">No transactions found</h3>
-                  <p className="text-slate-500 mb-4">Try adjusting your search or filter criteria</p>
+                  <p className="text-slate-500 mb-4">
+                    {searchQuery ? "Try adjusting your search or filter criteria" : "You haven't made any payments yet"}
+                  </p>
                   <Button onClick={() => setIsPaymentModalOpen(true)}>Make a Payment</Button>
                 </div>
               )}
@@ -285,7 +413,11 @@ export default function PaymentsPage() {
               <CardDescription>Payments you've made for item claims</CardDescription>
             </CardHeader>
             <CardContent>
-              {filteredTransactions.length > 0 ? (
+              {isLoading ? (
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredTransactions.length > 0 ? (
                 <div className="rounded-md border">
                   <div className="relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm">
@@ -318,12 +450,12 @@ export default function PaymentsPage() {
                             className="border-b transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <td className="p-4 align-middle">{format(transaction.createdAt, "MMM dd, yyyy")}</td>
-                            <td className="p-4 align-middle font-medium">{transaction.itemName}</td>
+                            <td className="p-4 align-middle font-medium">{transaction.itemName || "Payment"}</td>
                             <td className="p-4 align-middle">{transaction.recipient}</td>
                             <td className="p-4 align-middle">₹{transaction.amount.toFixed(2)}</td>
                             <td className="p-4 align-middle">{getStatusBadge(transaction.status)}</td>
                             <td className="p-4 align-middle">
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" onClick={() => setSelectedTransaction(transaction)}>
                                 View Details
                               </Button>
                             </td>
@@ -351,7 +483,11 @@ export default function PaymentsPage() {
               <CardDescription>Payments you've received for your items</CardDescription>
             </CardHeader>
             <CardContent>
-              {filteredTransactions.length > 0 ? (
+              {isLoading ? (
+                <div className="flex justify-center items-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredTransactions.length > 0 ? (
                 <div className="rounded-md border">
                   <div className="relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm">
@@ -384,12 +520,12 @@ export default function PaymentsPage() {
                             className="border-b transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
                           >
                             <td className="p-4 align-middle">{format(transaction.createdAt, "MMM dd, yyyy")}</td>
-                            <td className="p-4 align-middle font-medium">{transaction.itemName}</td>
+                            <td className="p-4 align-middle font-medium">{transaction.itemName || "Payment"}</td>
                             <td className="p-4 align-middle">{transaction.recipient}</td>
                             <td className="p-4 align-middle">₹{transaction.amount.toFixed(2)}</td>
                             <td className="p-4 align-middle">{getStatusBadge(transaction.status)}</td>
                             <td className="p-4 align-middle">
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" onClick={() => setSelectedTransaction(transaction)}>
                                 View Details
                               </Button>
                             </td>
@@ -455,8 +591,8 @@ export default function PaymentsPage() {
                 <div>
                   <h3 className="text-lg font-medium mb-2">Item Details</h3>
                   <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <p className="font-medium text-lg">{selectedTransaction.itemName}</p>
-                    <p className="text-slate-500">{selectedTransaction.description}</p>
+                    <p className="font-medium text-lg">{selectedTransaction.itemName || "Payment"}</p>
+                    <p className="text-slate-500">{selectedTransaction.description || "No description provided"}</p>
                   </div>
                 </div>
 
@@ -488,6 +624,12 @@ export default function PaymentsPage() {
                         <span className="text-slate-500">Name</span>
                         <span className="font-medium">{selectedTransaction.recipient}</span>
                       </div>
+                      {selectedTransaction.recipientEmail && (
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Email</span>
+                          <span className="font-medium">{selectedTransaction.recipientEmail}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-slate-500">Order ID</span>
                         <span className="font-medium">{selectedTransaction.orderId}</span>
@@ -506,14 +648,9 @@ export default function PaymentsPage() {
                   <Button variant="outline" onClick={() => setSelectedTransaction(null)}>
                     Close
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => downloadTransactionReceipt(selectedTransaction)}>
                     <FileText className="mr-2 h-4 w-4" /> Download Receipt
                   </Button>
-                  {selectedTransaction.status === "PENDING" && (
-                    <Button>
-                      <CheckCircle className="mr-2 h-4 w-4" /> Confirm Receipt
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
@@ -562,9 +699,7 @@ export default function PaymentsPage() {
       <DirectPaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        onPaymentComplete={() => {
-          setIsPaymentModalOpen(false)
-        }}
+        onPaymentComplete={handlePaymentComplete}
       />
     </div>
   )
