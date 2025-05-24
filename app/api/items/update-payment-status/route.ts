@@ -1,27 +1,31 @@
+import { type NextRequest, NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebase-admin"
-import { NextResponse } from "next/server"
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { id, paymentStatus } = await req.json()
-
-    if (!id) {
-      return new NextResponse("Missing item ID", { status: 400 })
+    if (!adminDb) {
+      return NextResponse.json({ error: "Database not available" }, { status: 503 })
     }
 
-    if (!paymentStatus) {
-      return new NextResponse("Missing payment status", { status: 400 })
+    const body = await request.json()
+    const { itemId, paymentStatus } = body
+
+    if (!itemId || !paymentStatus) {
+      return NextResponse.json({ error: "Missing required fields: itemId, paymentStatus" }, { status: 400 })
     }
 
-    const item = await adminDb.collection("items").doc(id).update({
-      paymentStatus: paymentStatus,
+    // Update the item's payment status
+    await adminDb.collection("items").doc(itemId).update({
+      payment_status: paymentStatus,
+      updated_at: new Date(),
     })
 
-    return NextResponse.json(item, {
-      status: 200,
+    return NextResponse.json({
+      success: true,
+      message: "Payment status updated successfully",
     })
-  } catch (error) {
-    console.log("[UPDATE_PAYMENT_STATUS]", error)
-    return new NextResponse("Internal error", { status: 500 })
+  } catch (error: any) {
+    console.error("Error updating item payment status:", error)
+    return NextResponse.json({ error: error.message || "Failed to update payment status" }, { status: 500 })
   }
 }

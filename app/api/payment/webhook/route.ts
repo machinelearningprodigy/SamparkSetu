@@ -5,6 +5,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
+    if (!adminDb) {
+      console.warn("Database not available for webhook processing")
+      return NextResponse.json({ received: true })
+    }
+
     // Cashfree webhook signature verification
     const signature = request.headers.get("x-webhook-signature")
     const timestamp = request.headers.get("x-webhook-timestamp")
