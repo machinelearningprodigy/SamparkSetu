@@ -1,4 +1,4 @@
-   import { type NextRequest, NextResponse } from "next/server"
+    import { type NextRequest, NextResponse } from "next/server"
 import { getFileFromMongoDB } from "@/lib/mongodb"
 import { Readable } from "stream"
 
