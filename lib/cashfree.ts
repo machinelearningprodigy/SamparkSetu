@@ -1,4 +1,4 @@
- import axios from "axios"
+import axios from "axios"
 
 // Utility functions for payment calculations
 export function calculatePlatformFee(amount: number): number {
