@@ -7,7 +7,6 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyBbaxcA
 // Get the generative model - using the correct model name
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-
 export interface ItemMatchRequest {
   targetItem: {
     id: string
