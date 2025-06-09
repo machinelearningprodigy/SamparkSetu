@@ -19,6 +19,7 @@ export async function uploadImageToMongoDB(file: File, folder = "items"): Promis
     })
 
     
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
       console.error("MongoDB upload failed:", response.status, errorData)
