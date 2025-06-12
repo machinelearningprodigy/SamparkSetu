@@ -2,11 +2,6 @@ import { NextResponse } from "next/server"
 import { collection, query, where, getDocs, getDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
-
-
-
-
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
