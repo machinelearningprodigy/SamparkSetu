@@ -3,6 +3,7 @@ import { collection, query, where, getDocs, getDoc, doc, updateDoc, serverTimest
 import { db } from "@/lib/firebase"
 
 
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
