@@ -9,6 +9,7 @@ const WEIGHTS = {
   DESCRIPTION: 0.25,
 }
 
+
 // Maximum number of days difference to consider for matching
 const MAX_DATE_DIFF_DAYS = 30
 
