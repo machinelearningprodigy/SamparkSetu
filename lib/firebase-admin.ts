@@ -5,7 +5,6 @@ import { getFirestore } from "firebase-admin/firestore"
 // Check if we're in build time
 const isBuildTime = process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV
 
-
 // Default exports for build time
 let auth: any = null
 let adminDb: any = null
