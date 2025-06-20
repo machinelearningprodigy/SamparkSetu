@@ -2,7 +2,6 @@
 
 To ensure optimal performance for the messaging system, you need to set up composite indexes in Firebase Firestore. Follow these steps:
 
-
 ## Required Indexes  
 
 1. **Messages Collection - For conversation queries**:
