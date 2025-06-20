@@ -3,7 +3,7 @@
 To ensure optimal performance for the messaging system, you need to set up composite indexes in Firebase Firestore. Follow these steps:
 
 ## Required Indexes 
-
+ 
 1. **Messages Collection - For conversation queries**:
    - Fields: `sender_id` (Ascending), `receiver_id` (Ascending), `created_at` (Descending)
    - Query scope: Collection
