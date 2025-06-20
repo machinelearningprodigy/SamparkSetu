@@ -8,7 +8,7 @@ To ensure optimal performance for the messaging system, you need to set up compo
    - Fields: `sender_id` (Ascending), `receiver_id` (Ascending), `created_at` (Descending)
    - Query scope: Collection
 
-2. **Messages Collection - For item-specific messages**:
+2. **Messages Collection - For item-specific messages**: 
    - Fields: `item_id` (Ascending), `created_at` (Descending)
    - Query scope: Collection
 
