@@ -2,6 +2,7 @@ import { initializeApp, getApps, cert } from "firebase-admin/app"
 import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
 
+
 // Check if we're in build time
 const isBuildTime = process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV
 
