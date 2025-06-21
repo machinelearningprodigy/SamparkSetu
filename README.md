@@ -31,6 +31,6 @@ A futuristic lost and found platform with a sci-fi theme, built with Next.js, Su
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/nexus-lost-found.git
+   git clone https://github.com/machinelearningprodigy/SamparkSetu.git
    cd nexus-lost-found
 
