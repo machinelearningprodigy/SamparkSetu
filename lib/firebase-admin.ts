@@ -10,6 +10,7 @@ const isBuildTime = process.env.NODE_ENV === "production" && !process.env.VERCEL
 let auth: any = null
 let adminDb: any = null
 
+
 // Only initialize Firebase Admin if not in build time and env vars are available
 if (!isBuildTime && process.env.FIREBASE_PROJECT_ID) {
   try {
