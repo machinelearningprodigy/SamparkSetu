@@ -10,6 +10,7 @@ export function useIsMobile() {
       setIsMobile(window.innerWidth < 768)
     }
 
+    
     // Initial check
     checkIsMobile()
 
