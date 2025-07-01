@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Send, X, Minimize2, Maximize2, Zap, Bot } from "lucide-react"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
-
 interface ChatInterfaceProps {
   isOpen: boolean
   onClose: () => void
