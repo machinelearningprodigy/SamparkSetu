@@ -13,6 +13,7 @@ export interface Item {
   condition?: string
 }
 
+
 export interface Profile {
   id: string
   created_at: string
