@@ -18,7 +18,7 @@ export async function uploadImageToMongoDB(file: File, folder = "items"): Promis
       body: formData,
     })
 
-    
+  
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
