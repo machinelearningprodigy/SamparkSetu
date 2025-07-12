@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 // Initialize the Google Generative AI with the provided API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
+
 // Get the generative model - using gemini-2.0-flash
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
