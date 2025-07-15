@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { Facebook, Twitter, Instagram, Github, Mail, Phone, MapPin, ArrowRight, CheckCircle2 } from "lucide-react"
 
+
 export function Footer() {
   return (
     <footer className="relative overflow-hidden border-t border-blue-500/20">
