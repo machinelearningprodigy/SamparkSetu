@@ -6,8 +6,7 @@ type ContactFormData = {
   subject: string
   message: string
 }
-
-
+ 
 export async function sendContactEmail(formData: ContactFormData) {
   try {
     // Validate the data
