@@ -8,7 +8,7 @@ import { AnimatedHeading } from "@/components/animated-heading"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { ChevronDown, Award, Users, Target, Zap, Github, Linkedin, Mail, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
-
+ 
 export default function AboutPage() {
   const [isLoaded, setIsLoaded] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
