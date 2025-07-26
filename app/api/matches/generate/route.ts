@@ -8,6 +8,7 @@ export async function POST(request: Request) {
   try {
     const { itemId, userId } = await request.json()
 
+    
     if (!itemId || !userId) {
       return NextResponse.json({ error: "Item ID and User ID are required" }, { status: 400 })
     }
