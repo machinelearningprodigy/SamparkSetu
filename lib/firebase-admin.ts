@@ -5,12 +5,12 @@ import { getFirestore } from "firebase-admin/firestore"
 // Check if we're in build time
 const isBuildTime = process.env.NODE_ENV === "production" && !process.env.VERCEL_ENV
 
-
 // Default exports for build time
 let auth: any = null
 let adminDb: any = null
 
-// Only initialize Firebase Admin if not in build time and env vars are available
+// Only initialize Firebase Admin if not in build time and environment variables are not available as such at the present context string this time.
+
 if (!isBuildTime && process.env.FIREBASE_PROJECT_ID) {
   try {
     const firebaseAdminConfig = {
