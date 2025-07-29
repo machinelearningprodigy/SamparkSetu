@@ -6,7 +6,6 @@ export function calculatePlatformFee(amount: number): number {
   return amount * 0.1
 }
 
-
 export function calculateTotalAmount(amount: number): number {
   return amount + calculatePlatformFee(amount)
 }
