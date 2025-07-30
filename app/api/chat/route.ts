@@ -6,7 +6,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
 
 // Get the generative model - using gemini-2.0-flash
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
-
+ 
 // System prompt to ensure proper formatting and concise responses
 const SYSTEM_PROMPT = `You are SamparkSetu AI, a helpful assistant for a lost and found platform. 
 Help users with finding lost items, reporting found items, and navigating the platform.
