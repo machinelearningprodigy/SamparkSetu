@@ -9,7 +9,6 @@ import { Toaster } from "@/components/ui/toaster"
 import { Chatbot } from "@/components/chatbot/chatbot"
 
 const inter = Inter({ subsets: ["latin"] })
-
 export const metadata: Metadata = {
   title: "SamparkSetu - Lost & Found",
   description: "Next level sci-fi themed lost and found platform",
