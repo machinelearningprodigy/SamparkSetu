@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 // Import the Chatbot component correctly
 import { Chatbot } from "@/components/chatbot/chatbot"
-
 const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "SamparkSetu - Lost & Found",
