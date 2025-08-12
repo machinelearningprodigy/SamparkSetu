@@ -13,7 +13,6 @@ export const metadata: Metadata = {
   description: "Next level sci-fi themed lost and found platform",
 }
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
