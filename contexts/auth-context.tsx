@@ -116,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         onboarded: false, // Mark as not onboarded yet
       }
 
+
       await setDoc(doc(db, "profiles", user.uid), profileData)
       console.log("Profile created in Firestore, redirecting to onboarding")
 
