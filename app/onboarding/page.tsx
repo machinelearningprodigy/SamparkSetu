@@ -22,7 +22,6 @@ import { Footer } from "@/components/footer"
 import { motion } from "framer-motion"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-
 export default function OnboardingPage() {
   const { user } = useAuth()
   const router = useRouter()
