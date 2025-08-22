@@ -16,6 +16,7 @@ import { auth, db } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore"
 
+
 type AuthContextType = {
   user: User | null
   isLoading: boolean
