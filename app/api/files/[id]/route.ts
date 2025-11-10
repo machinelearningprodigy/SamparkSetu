@@ -19,10 +19,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const buffer = Buffer.concat(chunks)
 
-    // Set content type
     const contentType = file.metadata?.contentType || "application/octet-stream"
 
-    // Return file
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": contentType,
