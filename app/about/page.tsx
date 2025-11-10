@@ -71,7 +71,7 @@ export default function AboutPage() {
                     <p className="text-slate-300 leading-relaxed">
                       SamparkSetu emerged from a powerful realization: despite our hyper-connected world, the process of
                       recovering lost items remains fragmented and inefficient. Founded in 2023, we represent the
-                      perfect fusion of cutting-edge technology with human compassion.
+                      perfect fusion of cutting-edge technology with human compassion
                     </p>
                   </div>
                 </motion.div>
