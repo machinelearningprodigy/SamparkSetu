@@ -1,4 +1,4 @@
-# Nexus - Next Level Sci-Fi Lost & Found Platform
+# SamparkSetu - Next Level Sci-Fi Lost & Found Platform
 
 A futuristic lost and found platform with a sci-fi theme, built with Next.js, Supabase, and Tailwind CSS.
 
